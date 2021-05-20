@@ -79,7 +79,7 @@ public class GeneticsAlgorithm extends Game {
 	@Override
     public void actionPerformed(ActionEvent event) {
     	if (!gameOver) {
-    		if (control.curKey == KeyEvent.VK_SPACE) {
+    		if (control.curKey == KeyEvent.VK_ENTER) {
     			if (!gameStarted) gameStarted = true;
     		}
     		if (gameStarted) {
@@ -89,11 +89,9 @@ public class GeneticsAlgorithm extends Game {
     				Enviroment.Pillar nextPillar = new Enviroment.Pillar(Main.width, Main.height);
     				if (nextIdx < env.pillars.size() && env.pillars.get(nextIdx).top.x < Main.width) 
     					nextPillar = env.pillars.get(nextIdx);
-    				
+    			
     				double[] features = new double[]{(double)ai_birds.get(i).height, (double)nextPillar.top.x, (double)nextPillar.top.height};
-    				//System.out.println(Arrays.toString(features));
-    				double[] pred = ai_birds.get(i).brain.forward(features);
-    				//System.out.println(pred[0]);
+                    double[] pred = ai_birds.get(i).brain.forward(features);
     				if (pred[0] > 0.5) ai_birds.get(i).tap();
     				ai_birds.get(i).update();
     				if (ai_birds.get(i).crash() || !env.check(ai_birds.get(i))) {
