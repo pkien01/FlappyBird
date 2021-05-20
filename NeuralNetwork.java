@@ -34,16 +34,13 @@ public class NeuralNetwork {
 			return res;
 		}
 
-		static double randFactor() {
-			return (mut.nextDouble() - 0.5) * 3 + (mut.nextDouble() - 0.5) + 1;
-		}
 		void mutate(double rate) {
 			for (int i = 0; i < out_size; i++)
 				for (int j = 0; j < in_size; j++) 
-					if (mut.nextDouble() < rate) weights[i][j] *= randFactor();
+					if (mut.nextDouble() < rate) weights[i][j] = mut.nextDouble() * (mut.nextBoolean()? -1 : 1);
 
 			for (int i = 0; i < out_size; i++) 
-				if (mut.nextDouble() < rate) bias[i] *= randFactor();
+				if (mut.nextDouble() < rate) bias[i] = mut.nextDouble() * (mut.nextBoolean()? -1 : 1);
 		}
 		void show() {
 			System.out.println("weights:");
