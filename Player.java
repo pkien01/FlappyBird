@@ -50,7 +50,7 @@ public class Player {
 		return crash(pillar.top) || crash(pillar.bottom);
 	}
 	boolean crash() {
-		return height + displayRadius >= Main.height - Enviroment.groundHeight;
+		return height + displayRadius >= Main.height - Enviroment.groundHeight || height - displayRadius < 0;
 	}
 	
 	void update() {

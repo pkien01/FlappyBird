@@ -65,7 +65,7 @@ public class GeneticsAlgorithm extends Game {
     	for (AIPlayer bird: ai_birds) {
     		if (!bird.alive) continue;
     		bird.draw(g);
-    		maxScore = Math.max(maxScore, bird.distTravelled);
+    		maxScore = Math.max(maxScore, bird.score);
     	}
     	g.setColor(Color.GREEN.darker());
     	g.setFont(new Font("Helvetica", Font.BOLD, 15)); 
@@ -86,10 +86,11 @@ public class GeneticsAlgorithm extends Game {
     			for (int i = 0; i < ai_birds.size(); i++) {
     				if (!ai_birds.get(i).alive) continue;
     				int nextIdx = env.nearestPillarIndex(ai_birds.get(i));
-    				Enviroment.Pillar nextPillar = nextIdx < env.pillars.size()? env.pillars.get(nextIdx) : new Enviroment.Pillar(Main.width, Main.height);
-    				double[] pred = ai_birds.get(i).brain.forward(new double[]{ai_birds.get(i).height, nextPillar.top.x, nextPillar.top.height});
+    				Enviroment.Pillar nextPillar = nextIdx < env.pillars.size() && env.pillars.get(nextIdx).top.x < Main.width? env.pillars.get(nextIdx) : new Enviroment.Pillar(Main.width, Main.height);
+    				double[] features = new double[]{(double)ai_birds.get(i).height, (double)nextPillar.top.x, (double)nextPillar.top.height};
+    				double[] pred = ai_birds.get(i).brain.forward(features);
     				//System.out.println(pred[0]);
-    				if (pred[0] > 0.5) ai_birds.get(i);
+    				if (pred[0] > 0.5) ai_birds.get(i).tap();
     				ai_birds.get(i).update();
     				if (ai_birds.get(i).crash() || !env.check(ai_birds.get(i))) {
     					ai_birds.get(i).alive = false;
