@@ -1,4 +1,4 @@
-package v1;
+package flappybird;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,7 +12,8 @@ public class Main extends JFrame {
         //frame.setLocationRelativeTo(null);
         
 		frame.setSize(width, height);
-		frame.add(new Game()); 
+		//frame.add(new Game()); 
+		frame.add(new GeneticsAlgorithm(10, 0.2));
         frame.setVisible(true);
     }
 }

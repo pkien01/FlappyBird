@@ -1,11 +1,10 @@
-package v1;
+package flappybird;
 
 import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
-
 
 
 public class Game extends JPanel implements ActionListener {
@@ -74,7 +73,8 @@ public class Game extends JPanel implements ActionListener {
     		}
     		if (gameStarted) {
     			bird.update();
-    			gameOver = gameOver || !env.update(bird) || bird.crash();
+                env.update();
+                if (bird.crash() || !env.check(bird)) gameOver = true;
     		}
     	}
     	else if (control.curKey == KeyEvent.VK_SPACE) {

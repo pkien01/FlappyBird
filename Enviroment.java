@@ -1,4 +1,4 @@
-package v1;
+package flappybird;
 
 import java.util.*;
 import javax.swing.*;
@@ -25,6 +25,9 @@ public class Enviroment {
 			if (rand == null) rand = new Random();
 			return new Pillar(pos, minHoleHeight + rand.nextInt(Main.height - holeLen - minHoleHeight * 2 - groundHeight));
 		}
+		boolean passOver(Player player) {
+			return top.x + displayWidth <= player.displayPos;
+		}
 		void draw(Graphics g) {
 			g.setColor(color);
 			g.fillRect(top.x, top.y, Math.min(top.width, Main.width - top.x), top.height);
@@ -42,20 +45,34 @@ public class Enviroment {
 	void reset() {
 		pillars.clear();
 	}
+	int nearestPillarIndex(Player player) {
+		int l = 0, r = pillars.size() - 1;
+		while (l <= r) {
+			int mid = (l + r) >> 1;
+			if (pillars.get(mid).top.x + Pillar.displayWidth > player.displayPos - player.displayRadius) r = mid - 1;
+			else l = mid + 1;
+		}
+		return r + 1;
+	}
 	// returns true if no crash, false otherwise;
-	boolean update(Player player) {
+	boolean check(Player player) {
+		if (!pillars.isEmpty()) {
+            int idx = nearestPillarIndex(player);
+            if (player.crash(pillars.get(idx))) return false;
+            if (!pillars.get(idx).flag && pillars.get(idx).passOver(player)) {
+                pillars.get(idx).flag = true;
+                player.score++;
+            }
+        }
+        return true;
+	}
+	boolean update() {
 		ArrayList<Pillar> newPillars = new ArrayList<>();
 		if (!pillars.isEmpty()) {
 			for (Pillar curPillar: pillars) {
 				curPillar.top.x -= speed;
 				curPillar.bottom.x -= speed;
 				if (curPillar.top.x + Pillar.displayWidth < 0) continue;
-
-				if (player.crash(curPillar)) return false;
-				if (!curPillar.flag && curPillar.top.x + Pillar.displayWidth <= player.displayPos) {
-					player.score++;
-					curPillar.flag = true;
-				}
 				newPillars.add(curPillar);
 			}
 		}
@@ -69,7 +86,7 @@ public class Enviroment {
 		return true;
 	}
 	void draw(Graphics g) {
-		g.setColor(new Color(102, 51, 0));
+		g.setColor(new Color(102, 51, 0)); // BROWN
 		g.fillRect(0, Main.height - groundHeight, Main.width, groundHeight);
 		for (Pillar curPillar: pillars) curPillar.draw(g);
 	}
