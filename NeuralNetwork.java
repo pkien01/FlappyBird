@@ -34,16 +34,13 @@ public class NeuralNetwork {
 			return res;
 		}
 
-		static double mutateFactor() {
-			return (Math.random() - 0.5) * 3 + (Math.random() - 0.5);
-		}
 		void mutate(double rate) {
 			for (int i = 0; i < out_size; i++)
 				for (int j = 0; j < in_size; j++) 
-					if (Math.random() < rate) weights[i][j] += weights[i][j] * mutateFactor();
+					if (Math.random() < rate) weights[i][j] += weights[i][j] * rand.nextGaussian();
 
 			for (int i = 0; i < out_size; i++) 
-				if (Math.random() < rate) bias[i] += bias[i] * mutateFactor();
+				if (Math.random() < rate) bias[i] += bias[i] * rand.nextGaussian();
 		}
 		void show() {
 			System.out.println("weights:");
@@ -76,16 +73,9 @@ public class NeuralNetwork {
 		for (int i = 0; i < depth - 1; i++) res.layers[i] = layers[i].copy();
 		return res;
 	}
-	double[] normalize(double[] input) {
-		double maxAbs = 0;
-		for (int i = 0; i < input.length; i++) maxAbs = Math.max(maxAbs, Math.abs(input[i]));
-		double[] res = new double[input.length];
-		for (int i = 0; i < input.length; i++) res[i] = input[i] / maxAbs;
-		return res;
-	}
 	double[] forward(double[] input) {
 		assert input.length == sizes[0];
-		double[] res = normalize(input);
+		double[] res = input.clone();
 		for (int i = 0; i < depth - 1; i++) res = layers[i].forward(res);
 		return classify.forward(res);
 	}

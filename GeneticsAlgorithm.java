@@ -122,7 +122,10 @@ public class GeneticsAlgorithm extends Game {
 
                     ai_birds.get(i).distToNextHole = ai_birds.get(i).distanceTo(nextPillar);
     			
-    				double[] features = new double[]{(double)ai_birds.get(i).height, (double)nextPillar.top.x, (double)nextPillar.top.height};
+    				double[] features = new double[3];
+                    features[0] = (double)ai_birds.get(i).height / (Main.height - Enviroment.groundHeight);
+                    features[1] =  (double)nextPillar.top.x / Main.width;
+                    features[2] = (double)nextPillar.top.height / Enviroment.Pillar.maxHoleHeight;
                     double[] pred = ai_birds.get(i).brain.forward(features);
                     //System.out.println(pred[0]);
     				if (pred[0] > 0.5) ai_birds.get(i).tap();
