@@ -24,12 +24,17 @@ public class NeuralNetwork {
 			res.bias = bias.clone();
 			return res;
 		}
+		static double activation(double x) {
+			//return Math.max(x, 0);
+			return Math.tanh(x);
+		}
 		double[] forward(double[] input) {
 			assert input.length == in_size;
 			double[] res = new double[out_size];
 			for (int i = 0; i < out_size; i++) {
 				res[i] = bias[i];
 				for (int j = 0; j < in_size; j++) res[i] += weights[i][j] * input[j];
+				res[i] = activation(res[i]);
 			}
 			return res;
 		}
@@ -37,10 +42,14 @@ public class NeuralNetwork {
 		void mutate(double rate) {
 			for (int i = 0; i < out_size; i++)
 				for (int j = 0; j < in_size; j++) 
-					if (Math.random() < rate) weights[i][j] += weights[i][j] * rand.nextGaussian();
+					if (Math.random() < rate) weights[i][j] += rand.nextGaussian();
 
 			for (int i = 0; i < out_size; i++) 
-				if (Math.random() < rate) bias[i] += bias[i] * rand.nextGaussian();
+				if (Math.random() < rate) bias[i] += rand.nextGaussian();
+		}
+		void crossOverBias(FCLayer mate) {
+			int cutPoint = rand.nextInt(out_size);
+			for (int i = cutPoint; i < out_size; i++) bias[i] = mate.bias[i];
 		}
 		void show() {
 			System.out.println("weights:");
@@ -58,6 +67,7 @@ public class NeuralNetwork {
 		}
 	}
 
+	static Random rand = new Random();
 	static SigmoidLayer classify = new SigmoidLayer();
 	FCLayer[] layers;
 	int[] sizes;
@@ -81,6 +91,12 @@ public class NeuralNetwork {
 	}
 	void mutate(double rate) {
 		for (int i = 0; i < depth - 1; i++) layers[i].mutate(rate);
+	}
+	NeuralNetwork crossOver(NeuralNetwork mate) {
+		boolean choose = rand.nextBoolean();
+		NeuralNetwork res = !choose? this.copy() : mate.copy();
+		for (int i = 0; i < depth - 1; i++) res.layers[i].crossOverBias(!choose? mate.layers[i] : this.layers[i]);
+		return res;
 	}
 /*
 	public static void main(String[] args) {

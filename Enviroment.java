@@ -8,7 +8,7 @@ public class Enviroment {
 	static final int groundHeight = 100;
 	static class Pillar {
 		static final int holeLen = Player.displayRadius * 6;
-		static final int minHoleHeight = holeLen / 4, maxHoleHeight = Main.height - holeLen - minHoleHeight * 2 - groundHeight;
+		static final int minHoleHeight = holeLen / 4, maxHoleHeight = Main.height - groundHeight - holeLen - minHoleHeight;
 		static final int displayWidth = Player.displayRadius * 9 / 2;
 		static final Color color = Color.GRAY;
 
@@ -24,7 +24,7 @@ public class Enviroment {
 		//generate random gap
 		static Pillar generate(int pos) {
 			if (rand == null) rand = new Random();
-			return new Pillar(pos, minHoleHeight + rand.nextInt(maxHoleHeight));
+			return new Pillar(pos, minHoleHeight + rand.nextInt(maxHoleHeight - minHoleHeight));
 		}
 		boolean passOver(Player player) {
 			return top.x + displayWidth <= player.displayPos;

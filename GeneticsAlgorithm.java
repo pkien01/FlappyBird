@@ -20,34 +20,27 @@ public class GeneticsAlgorithm extends Game {
             return distance(new Point(displayPos, (int)Math.round(height)), p);
         }
         double distanceTo(Enviroment.Pillar pl) {
-            return distanceTo(new Point(pl.top.x + pl.displayWidth / 2, pl.top.height + pl.holeLen / 2));
+            return distanceTo(new Point(pl.top.x + pl.displayWidth, pl.top.height + pl.holeLen / 2));
         }
 		AIPlayer(NeuralNetwork brain) {
 			super();
 			this.brain = brain;
             this.distTravelled = 0;
-            this.distToNextHole = distanceTo(new Point(Main.width, 0));
 			alive = true;
 		}
         @Override 
         public void reset() {
             super.reset();
             this.distTravelled = 0;
-            this.distToNextHole = distanceTo(new Point(Main.width, 0));
         }
         @Override 
         public void update() {
             super.update();
-            distTravelled += Enviroment.speed;
-        }
-        double fitness() {
-            return (double)distTravelled - distTravelled;
+            distTravelled++;
         }
 		@Override
 		public int compareTo(AIPlayer other) {
-			if (other.fitness() == fitness()) return 0;
-            if (other.fitness() < fitness()) return -1;
-            return 1;
+			return distTravelled != other.distTravelled? other.distTravelled - distTravelled : Double.compare(distToNextHole, other.distToNextHole);
 		}
 	}
 
@@ -57,6 +50,7 @@ public class GeneticsAlgorithm extends Game {
 
 	ArrayList<AIPlayer> ai_birds;
 	int cntAlive, generations;
+    static Random rand = new Random();
 	GeneticsAlgorithm(int population_size, int remain_size, double mutate_rate) {
 		super();
 		this.population_size = population_size;
@@ -73,12 +67,24 @@ public class GeneticsAlgorithm extends Game {
 		generations++;
 		Collections.sort(ai_birds);
 
+        int[] prefSumFitness = new int[population_size];
+        for (int i = 0; i < population_size; i++) 
+            prefSumFitness[i] = (i > 0? prefSumFitness[i - 1] : 0) + ai_birds.get(i).distTravelled;
 
 		for (int i = 0; i < remain_size; i++) ai_birds.set(i, new AIPlayer(ai_birds.get(i).brain.copy()));
 		for (int i = remain_size; i < population_size; i++) {
-			NeuralNetwork curBrain = ai_birds.get(i % remain_size).brain.copy();
-			curBrain.mutate(mutate_rate);
-			ai_birds.set(i, new AIPlayer(curBrain));
+            int dad_idx = Arrays.binarySearch(prefSumFitness, rand.nextInt(prefSumFitness[population_size - 1]));
+            if (dad_idx < 0) dad_idx = -dad_idx - 1;
+            else dad_idx++;
+            int mom_idx = Arrays.binarySearch(prefSumFitness, rand.nextInt(prefSumFitness[population_size - 1]));
+            if (mom_idx < 0) mom_idx = -mom_idx - 1;
+            else mom_idx++;
+            if (mom_idx != dad_idx) {
+                NeuralNetwork child_brain = ai_birds.get(dad_idx).brain.crossOver(ai_birds.get(mom_idx).brain);
+                child_brain.mutate(mutate_rate);
+                ai_birds.set(i, new AIPlayer(child_brain));
+            }
+            else ai_birds.set(i, new AIPlayer(ai_birds.get(mom_idx).brain.copy()));
 		}
 
 		cntAlive = population_size;
@@ -116,19 +122,20 @@ public class GeneticsAlgorithm extends Game {
     			for (int i = 0; i < ai_birds.size(); i++) {
     				if (!ai_birds.get(i).alive) continue;
     				int nextIdx = env.nearestPillarIndex(ai_birds.get(i));
-    				Enviroment.Pillar nextPillar = new Enviroment.Pillar(Main.width, Main.height);
+    				Enviroment.Pillar nextPillar = new Enviroment.Pillar(Main.width, 0);
     				if (nextIdx < env.pillars.size() && env.pillars.get(nextIdx).top.x < Main.width) 
     					nextPillar = env.pillars.get(nextIdx);
 
                     ai_birds.get(i).distToNextHole = ai_birds.get(i).distanceTo(nextPillar);
     			
     				double[] features = new double[3];
-                    features[0] = (double)ai_birds.get(i).height / (Main.height - Enviroment.groundHeight);
-                    features[1] =  (double)nextPillar.top.x / Main.width;
-                    features[2] = (double)nextPillar.top.height / Enviroment.Pillar.maxHoleHeight;
+                    features[0] = 2.0 * ai_birds.get(i).height / (Main.height - Enviroment.groundHeight) - 1;
+                    features[1] =  2.0 * nextPillar.top.x / Main.width - 1;
+                    features[2] = 2.0 * nextPillar.top.height / Enviroment.Pillar.maxHoleHeight - 1;
+                    //System.out.println(Arrays.toString(features));
                     double[] pred = ai_birds.get(i).brain.forward(features);
                     //System.out.println(pred[0]);
-    				if (pred[0] > 0.5) ai_birds.get(i).tap();
+    				if (pred[0] > 0.6) ai_birds.get(i).tap();
     				ai_birds.get(i).update();
     				if (ai_birds.get(i).crash() || !env.check(ai_birds.get(i))) {
     					ai_birds.get(i).alive = false;
