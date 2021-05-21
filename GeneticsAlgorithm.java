@@ -14,13 +14,12 @@ public class GeneticsAlgorithm extends Game {
 		boolean alive;
         static double distance(Point p1, Point p2) {
             int diff_x = p1.x - p2.x, diff_y = p1.y - p2.y;
-            return Math.sqrt((double)diff_x * diff_x + diff_y * diff_y);
-        }
-        double distanceTo(Point p) {
-            return distance(new Point(displayPos, (int)Math.round(height)), p);
+            return Math.sqrt((double)diff_x * diff_x + (double)diff_y * diff_y);
         }
         double distanceTo(Enviroment.Pillar pl) {
-            return distanceTo(new Point(pl.top.x + pl.displayWidth, pl.top.height + pl.holeLen / 2));
+            Point p1 = new Point(displayPos, (int)Math.round(height));
+            Point p2 = new Point(pl.top.x + pl.displayWidth, pl.top.height + pl.holeLen / 2);
+            return distance(p1, p2);
         }
 		AIPlayer(NeuralNetwork brain) {
 			super();
@@ -40,7 +39,8 @@ public class GeneticsAlgorithm extends Game {
         }
 		@Override
 		public int compareTo(AIPlayer other) {
-			return distTravelled != other.distTravelled? other.distTravelled - distTravelled : Double.compare(distToNextHole, other.distToNextHole);
+            if (distTravelled != other.distTravelled) return Integer.compare(distTravelled, other.distTravelled);
+            return Double.compare(distToNextHole, other.distToNextHole);
 		}
 	}
 
@@ -66,27 +66,33 @@ public class GeneticsAlgorithm extends Game {
 	void nextGeneration() {
 		generations++;
 		Collections.sort(ai_birds);
+        //for (int i = 0; i < population_size; i++) System.out.print(ai_birds.get(i).fitness() + " ");
+        //System.out.println();
 
-        int[] prefSumFitness = new int[population_size];
+        double[] prefSumFitness = new double[population_size];
         for (int i = 0; i < population_size; i++) 
-            prefSumFitness[i] = (i > 0? prefSumFitness[i - 1] : 0) + ai_birds.get(i).distTravelled;
+            prefSumFitness[i] = (i > 0? prefSumFitness[i - 1] : 0.0) + ai_birds.get(i).distTravelled;
+        double sumFitness = prefSumFitness[population_size - 1];
+
+        //System.out.println(Arrays.toString(prefSumFitness));
 
 		for (int i = 0; i < remain_size; i++) {
             int direct_idx = i;
-            if (i >= 5) {
-                direct_idx = Arrays.binarySearch(prefSumFitness, rand.nextInt(prefSumFitness[population_size - 1]));
+            if (i >= population_size / 10) {
+                direct_idx = Arrays.binarySearch(prefSumFitness, rand.nextDouble() * sumFitness);
                 if (direct_idx < 0) direct_idx = -direct_idx - 1;
-                else direct_idx++;
+                else direct_idx = Math.min(population_size - 1, direct_idx + 1);
             }
+            //System.out.println(direct_idx);
             ai_birds.set(i, new AIPlayer(ai_birds.get(direct_idx).brain.copy()));
         }
 		for (int i = remain_size; i < population_size; i++) {
-            int dad_idx = Arrays.binarySearch(prefSumFitness, rand.nextInt(prefSumFitness[population_size - 1]));
+            int dad_idx = Arrays.binarySearch(prefSumFitness, rand.nextDouble() * sumFitness);
             if (dad_idx < 0) dad_idx = -dad_idx - 1;
-            else dad_idx++;
-            int mom_idx = Arrays.binarySearch(prefSumFitness, rand.nextInt(prefSumFitness[population_size - 1]));
+            else dad_idx = Math.min(population_size - 1, dad_idx + 1);
+            int mom_idx = Arrays.binarySearch(prefSumFitness, rand.nextDouble() * sumFitness);
             if (mom_idx < 0) mom_idx = -mom_idx - 1;
-            else mom_idx++;
+            else mom_idx = Math.min(population_size - 1, mom_idx + 1);
             if (mom_idx != dad_idx) {
                 NeuralNetwork child_brain = ai_birds.get(dad_idx).brain.crossOver(ai_birds.get(mom_idx).brain);
                 child_brain.mutate(mutate_rate);
@@ -130,7 +136,7 @@ public class GeneticsAlgorithm extends Game {
     			for (int i = 0; i < ai_birds.size(); i++) {
     				if (!ai_birds.get(i).alive) continue;
     				int nextIdx = env.nearestPillarIndex(ai_birds.get(i));
-    				Enviroment.Pillar nextPillar = new Enviroment.Pillar(Main.width, 0);
+    				Enviroment.Pillar nextPillar = new Enviroment.Pillar(Main.width, (Main.height - Enviroment.groundHeight - Enviroment.Pillar.holeLen) / 2);
     				if (nextIdx < env.pillars.size() && env.pillars.get(nextIdx).top.x < Main.width) 
     					nextPillar = env.pillars.get(nextIdx);
 

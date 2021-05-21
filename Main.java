@@ -13,7 +13,7 @@ public class Main extends JFrame {
         
 		frame.setSize(width, height);
 		//frame.add(new Game()); 
-		frame.add(new GeneticsAlgorithm(100, 10, 0.15));
+		frame.add(new GeneticsAlgorithm(100, 20, 0.1));
         frame.setVisible(true);
     }
 }

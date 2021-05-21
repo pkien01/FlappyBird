@@ -50,6 +50,7 @@ public class NeuralNetwork {
 		void crossOverBias(FCLayer mate) {
 			int cutPoint = rand.nextInt(out_size);
 			for (int i = cutPoint; i < out_size; i++) bias[i] = mate.bias[i];
+			//for (int i = 0; i < out_size; i++) if (rand.nextBoolean()) bias[i] = mate.bias[i];
 		}
 		void show() {
 			System.out.println("weights:");
