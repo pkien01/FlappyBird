@@ -71,7 +71,15 @@ public class GeneticsAlgorithm extends Game {
         for (int i = 0; i < population_size; i++) 
             prefSumFitness[i] = (i > 0? prefSumFitness[i - 1] : 0) + ai_birds.get(i).distTravelled;
 
-		for (int i = 0; i < remain_size; i++) ai_birds.set(i, new AIPlayer(ai_birds.get(i).brain.copy()));
+		for (int i = 0; i < remain_size; i++) {
+            int direct_idx = i;
+            if (i >= 5) {
+                direct_idx = Arrays.binarySearch(prefSumFitness, rand.nextInt(prefSumFitness[population_size - 1]));
+                if (direct_idx < 0) direct_idx = -direct_idx - 1;
+                else direct_idx++;
+            }
+            ai_birds.set(i, new AIPlayer(ai_birds.get(direct_idx).brain.copy()));
+        }
 		for (int i = remain_size; i < population_size; i++) {
             int dad_idx = Arrays.binarySearch(prefSumFitness, rand.nextInt(prefSumFitness[population_size - 1]));
             if (dad_idx < 0) dad_idx = -dad_idx - 1;
@@ -84,8 +92,8 @@ public class GeneticsAlgorithm extends Game {
                 child_brain.mutate(mutate_rate);
                 ai_birds.set(i, new AIPlayer(child_brain));
             }
-            else ai_birds.set(i, new AIPlayer(ai_birds.get(mom_idx).brain.copy()));
-		}
+            else i--;
+        }
 
 		cntAlive = population_size;
 	}
