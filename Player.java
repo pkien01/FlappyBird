@@ -16,21 +16,18 @@ public class Player {
 	int wingsAngle, wingsSpeed;
 	double height, vertSpeed;
 	int score;
-	int distTravelled;
 
 	Player() {
 		this.height = (double)initHeight;
 		vertSpeed = 0.0;
 		score = 0;
 		wingsAngle = 0; wingsSpeed = 5;
-		distTravelled = 0;
 	}
 	void reset() {
 		this.height = (double)initHeight;
 		vertSpeed = 0.0;
 		score = 0;
 		wingsAngle = 0; wingsSpeed = 5;
-		distTravelled = 0;
 	}
 	void tap() {
 		vertSpeed = tapSpeed;
@@ -54,7 +51,6 @@ public class Player {
 	}
 	
 	void update() {
-		distTravelled += Enviroment.speed;
 		height += vertSpeed * Game.deltaTime;
 		//if ((int)Math.round(height) - displayRadius < 0) height = displayRadius;
 		//if ((int)Math.round(height) + displayRadius >= Main.height) height = Main.height - displayRadius;

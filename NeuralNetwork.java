@@ -4,7 +4,7 @@ import java.util.*;
 
 public class NeuralNetwork {
 	static class FCLayer {
-		static Random rand = new Random(), mut = new Random();
+		static Random rand = new Random();
 		double[][] weights;
 		double[] bias;
 		int in_size, out_size;
@@ -34,13 +34,16 @@ public class NeuralNetwork {
 			return res;
 		}
 
+		static double mutateFactor() {
+			return (Math.random() - 0.5) * 3 + (Math.random() - 0.5);
+		}
 		void mutate(double rate) {
 			for (int i = 0; i < out_size; i++)
 				for (int j = 0; j < in_size; j++) 
-					if (mut.nextDouble() < rate) weights[i][j] = mut.nextDouble() * (mut.nextBoolean()? -1 : 1);
+					if (Math.random() < rate) weights[i][j] += weights[i][j] * mutateFactor();
 
 			for (int i = 0; i < out_size; i++) 
-				if (mut.nextDouble() < rate) bias[i] = mut.nextDouble() * (mut.nextBoolean()? -1 : 1);
+				if (Math.random() < rate) bias[i] += bias[i] * mutateFactor();
 		}
 		void show() {
 			System.out.println("weights:");
@@ -74,10 +77,10 @@ public class NeuralNetwork {
 		return res;
 	}
 	double[] normalize(double[] input) {
-		double sum = 0;
-		for (int i = 0; i < input.length; i++) sum += input[i];
+		double maxAbs = 0;
+		for (int i = 0; i < input.length; i++) maxAbs = Math.max(maxAbs, Math.abs(input[i]));
 		double[] res = new double[input.length];
-		for (int i = 0; i < input.length; i++) res[i] = input[i] / sum;
+		for (int i = 0; i < input.length; i++) res[i] = input[i] / maxAbs;
 		return res;
 	}
 	double[] forward(double[] input) {

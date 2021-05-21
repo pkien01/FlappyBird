@@ -9,16 +9,45 @@ import java.util.*;
 public class GeneticsAlgorithm extends Game {
 	static class AIPlayer extends Player implements Comparable<AIPlayer> {
 		NeuralNetwork brain;
+        int distTravelled;
+        double distToNextHole;
 		boolean alive;
+        static double distance(Point p1, Point p2) {
+            int diff_x = p1.x - p2.x, diff_y = p1.y - p2.y;
+            return Math.sqrt((double)diff_x * diff_x + diff_y * diff_y);
+        }
+        double distanceTo(Point p) {
+            return distance(new Point(displayPos, (int)Math.round(height)), p);
+        }
+        double distanceTo(Enviroment.Pillar pl) {
+            return distanceTo(new Point(pl.top.x + pl.displayWidth / 2, pl.top.height + pl.holeLen / 2));
+        }
 		AIPlayer(NeuralNetwork brain) {
 			super();
 			this.brain = brain;
+            this.distTravelled = 0;
+            this.distToNextHole = distanceTo(new Point(Main.width, 0));
 			alive = true;
 		}
-
+        @Override 
+        public void reset() {
+            super.reset();
+            this.distTravelled = 0;
+            this.distToNextHole = distanceTo(new Point(Main.width, 0));
+        }
+        @Override 
+        public void update() {
+            super.update();
+            distTravelled += Enviroment.speed;
+        }
+        double fitness() {
+            return (double)distTravelled - distTravelled;
+        }
 		@Override
 		public int compareTo(AIPlayer other) {
-			return other.distTravelled - distTravelled;
+			if (other.fitness() == fitness()) return 0;
+            if (other.fitness() < fitness()) return -1;
+            return 1;
 		}
 	}
 
@@ -28,10 +57,10 @@ public class GeneticsAlgorithm extends Game {
 
 	ArrayList<AIPlayer> ai_birds;
 	int cntAlive, generations;
-	GeneticsAlgorithm(int population_size, double mutate_rate) {
+	GeneticsAlgorithm(int population_size, int remain_size, double mutate_rate) {
 		super();
 		this.population_size = population_size;
-		this.remain_size = population_size / 2;
+		this.remain_size = remain_size;
 		this.mutate_rate = mutate_rate;
 
 		ai_birds = new ArrayList<>();
@@ -51,6 +80,7 @@ public class GeneticsAlgorithm extends Game {
 			curBrain.mutate(mutate_rate);
 			ai_birds.set(i, new AIPlayer(curBrain));
 		}
+
 		cntAlive = population_size;
 	}
 
@@ -89,9 +119,12 @@ public class GeneticsAlgorithm extends Game {
     				Enviroment.Pillar nextPillar = new Enviroment.Pillar(Main.width, Main.height);
     				if (nextIdx < env.pillars.size() && env.pillars.get(nextIdx).top.x < Main.width) 
     					nextPillar = env.pillars.get(nextIdx);
+
+                    ai_birds.get(i).distToNextHole = ai_birds.get(i).distanceTo(nextPillar);
     			
     				double[] features = new double[]{(double)ai_birds.get(i).height, (double)nextPillar.top.x, (double)nextPillar.top.height};
                     double[] pred = ai_birds.get(i).brain.forward(features);
+                    //System.out.println(pred[0]);
     				if (pred[0] > 0.5) ai_birds.get(i).tap();
     				ai_birds.get(i).update();
     				if (ai_birds.get(i).crash() || !env.check(ai_birds.get(i))) {
