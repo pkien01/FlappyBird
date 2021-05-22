@@ -27,6 +27,9 @@ public class GeneticsAlgorithm extends Game {
             this.distTravelled = 0;
 			alive = true;
 		}
+        double fitness() {
+            return distTravelled * 1000.0 + distToNextHole;
+        }
         @Override 
         public void reset() {
             super.reset();
@@ -39,8 +42,7 @@ public class GeneticsAlgorithm extends Game {
         }
 		@Override
 		public int compareTo(AIPlayer other) {
-            if (distTravelled != other.distTravelled) return Integer.compare(distTravelled, other.distTravelled);
-            return Double.compare(distToNextHole, other.distToNextHole);
+            return Double.compare(fitness(), other.fitness());
 		}
 	}
 
@@ -66,19 +68,18 @@ public class GeneticsAlgorithm extends Game {
 	void nextGeneration() {
 		generations++;
 		Collections.sort(ai_birds);
-        //for (int i = 0; i < population_size; i++) System.out.print(ai_birds.get(i).fitness() + " ");
-        //System.out.println();
+        
 
         double[] prefSumFitness = new double[population_size];
         for (int i = 0; i < population_size; i++) 
-            prefSumFitness[i] = (i > 0? prefSumFitness[i - 1] : 0.0) + ai_birds.get(i).distTravelled;
+            prefSumFitness[i] = (i > 0? prefSumFitness[i - 1] : 0.0) + ai_birds.get(i).fitness();
         double sumFitness = prefSumFitness[population_size - 1];
 
         //System.out.println(Arrays.toString(prefSumFitness));
 
 		for (int i = 0; i < remain_size; i++) {
             int direct_idx = i;
-            if (i >= population_size / 10) {
+            if (i >= remain_size / 2) {
                 direct_idx = Arrays.binarySearch(prefSumFitness, rand.nextDouble() * sumFitness);
                 if (direct_idx < 0) direct_idx = -direct_idx - 1;
                 else direct_idx = Math.min(population_size - 1, direct_idx + 1);
@@ -90,20 +91,21 @@ public class GeneticsAlgorithm extends Game {
             int dad_idx = Arrays.binarySearch(prefSumFitness, rand.nextDouble() * sumFitness);
             if (dad_idx < 0) dad_idx = -dad_idx - 1;
             else dad_idx = Math.min(population_size - 1, dad_idx + 1);
+
             int mom_idx = Arrays.binarySearch(prefSumFitness, rand.nextDouble() * sumFitness);
             if (mom_idx < 0) mom_idx = -mom_idx - 1;
             else mom_idx = Math.min(population_size - 1, mom_idx + 1);
-            if (mom_idx != dad_idx) {
-                NeuralNetwork child_brain = ai_birds.get(dad_idx).brain.crossOver(ai_birds.get(mom_idx).brain);
-                child_brain.mutate(mutate_rate);
-                ai_birds.set(i, new AIPlayer(child_brain));
-            }
-            else i--;
+
+            NeuralNetwork child_brain = ai_birds.get(dad_idx).brain.crossOverAll(ai_birds.get(mom_idx).brain);
+            if (rand.nextBoolean()) child_brain.mutate(mutate_rate);
+            ai_birds.set(i, new AIPlayer(child_brain));
+            
         }
 
 		cntAlive = population_size;
 	}
 
+    int maxScore;
 	@Override
     protected void paintComponent(Graphics g) {
     	super.paintComponent(g);
@@ -111,12 +113,13 @@ public class GeneticsAlgorithm extends Game {
     	g.setColor(Color.CYAN.brighter());
     	g.fillRect(0, 0, Main.width, Main.height);
     	env.draw(g);
-    	int maxScore = 0;
+
+        int maxScore = 0;
     	for (AIPlayer bird: ai_birds) {
-    		if (!bird.alive) continue;
-    		bird.draw(g);
-    		maxScore = Math.max(maxScore, bird.score);
-    	}
+            if (!bird.alive) continue;
+            bird.draw(g);
+            maxScore = Math.max(maxScore, bird.score);
+        }
     	g.setColor(Color.GREEN.darker());
     	g.setFont(new Font("Helvetica", Font.BOLD, 15)); 
     	g.drawString("Score: " + maxScore, Main.width - 110, 20);
@@ -133,6 +136,7 @@ public class GeneticsAlgorithm extends Game {
     			if (!gameStarted) gameStarted = true;
     		}
     		if (gameStarted) {
+                boolean addScore = false;
     			for (int i = 0; i < ai_birds.size(); i++) {
     				if (!ai_birds.get(i).alive) continue;
     				int nextIdx = env.nearestPillarIndex(ai_birds.get(i));
@@ -146,11 +150,13 @@ public class GeneticsAlgorithm extends Game {
                     features[0] = 2.0 * ai_birds.get(i).height / (Main.height - Enviroment.groundHeight) - 1;
                     features[1] =  2.0 * nextPillar.top.x / Main.width - 1;
                     features[2] = 2.0 * nextPillar.top.height / Enviroment.Pillar.maxHoleHeight - 1;
+
                     //System.out.println(Arrays.toString(features));
                     double[] pred = ai_birds.get(i).brain.forward(features);
                     //System.out.println(pred[0]);
     				if (pred[0] > 0.6) ai_birds.get(i).tap();
     				ai_birds.get(i).update();
+        
     				if (ai_birds.get(i).crash() || !env.check(ai_birds.get(i))) {
     					ai_birds.get(i).alive = false;
     					cntAlive--;
@@ -159,8 +165,10 @@ public class GeneticsAlgorithm extends Game {
     					env.reset();
     					nextGeneration();
     				}
+
     			}
     			env.update();
+                maxScore += addScore? 1: 0;
     		}
     	}
     	//System.out.println(cntAlive);

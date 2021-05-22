@@ -10,7 +10,7 @@ public class Enviroment {
 		static final int holeLen = Player.displayRadius * 6;
 		static final int minHoleHeight = holeLen / 4, maxHoleHeight = Main.height - groundHeight - holeLen - minHoleHeight;
 		static final int displayWidth = Player.displayRadius * 9 / 2;
-		static final Color color = Color.GRAY;
+		Color color = Color.GRAY;
 
 		static Random rand;
 
@@ -47,21 +47,19 @@ public class Enviroment {
 		pillars.clear();
 	}
 	int nearestPillarIndex(Player player) {
-		int l = 0, r = pillars.size() - 1;
-		while (l <= r) {
-			int mid = (l + r) >> 1;
-			if (pillars.get(mid).top.x + Pillar.displayWidth > player.displayPos - player.displayRadius) r = mid - 1;
-			else l = mid + 1;
-		}
-		return r + 1;
+		for (int i = 0; i < pillars.size(); i++) 
+			if (pillars.get(i).top.x + Pillar.displayWidth > player.displayPos - player.displayRadius) 
+				return i;
+		return 0;
 	}
-	// returns true if no crash, false otherwise;
+	// returns 0 if no crash, 1 if no crash and pass through, -1 otherwise;
 	boolean check(Player player) {
 		if (!pillars.isEmpty()) {
             int idx = nearestPillarIndex(player);
             if (player.crash(pillars.get(idx))) return false;
             if (!pillars.get(idx).flag && pillars.get(idx).passOver(player)) {
                 pillars.get(idx).flag = true;
+                //pillars.get(idx).color = Color.RED;
                 player.score++;
             }
         }
