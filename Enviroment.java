@@ -22,7 +22,7 @@ public class Enviroment {
 		}
 		//generate random gap
 		static Pillar generate(int pos) {
-			//if (rand == null) rand = new Random();
+			if (rand == null) rand = new Random();
 			return new Pillar(pos, minHoleHeight + rand.nextInt(maxHoleHeight - minHoleHeight));
 		}
 		boolean passOver(Player player) {
@@ -41,10 +41,10 @@ public class Enviroment {
 	ArrayList<Pillar> pillars;
 	Enviroment() {
 		pillars = new ArrayList<>();
-		rand = new Random(123);
+		//rand = new Random(123);
 	}	
 	void reset() {
-		rand = new Random(123);
+		//rand = new Random(123);
 		pillars.clear();
 	}
 	int nearestPillarIndex(Player player) {

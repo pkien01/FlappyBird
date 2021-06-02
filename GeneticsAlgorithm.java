@@ -94,7 +94,7 @@ public class GeneticsAlgorithm extends Game {
             else mom_idx = Math.min(population_size - 1, mom_idx + 1);
 
             NeuralNetwork child_brain = ai_birds.get(dad_idx).brain.crossOverAll(ai_birds.get(mom_idx).brain);
-            if (rand.nextBoolean()) child_brain.mutate(mutate_rate);
+            child_brain.mutate(mutate_rate);
             ai_birds.set(i, new AIPlayer(child_brain));
         }
 
@@ -143,9 +143,9 @@ public class GeneticsAlgorithm extends Game {
                     ai_birds.get(i).distToNextHole = ai_birds.get(i).distanceTo(nextPillar);
     			
     				double[] features = new double[3];
-                    features[0] = 2.0 * ai_birds.get(i).height / (Main.height - Enviroment.groundHeight) - 1;
-                    features[1] =  2.0 * nextPillar.top.x / Main.width - 1;
-                    features[2] = 2.0 * nextPillar.top.height / Enviroment.Pillar.maxHoleHeight - 1;
+                    features[0] = ai_birds.get(i).height / (Main.height - Enviroment.groundHeight);
+                    features[1] =  nextPillar.top.x / Main.width;
+                    features[2] = nextPillar.top.height / Enviroment.Pillar.maxHoleHeight;
 
                     //System.out.println(Arrays.toString(features));
                     double[] pred = ai_birds.get(i).brain.forward(features);
