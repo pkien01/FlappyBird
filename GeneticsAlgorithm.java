@@ -28,7 +28,7 @@ public class GeneticsAlgorithm extends Game {
 			alive = true;
 		}
         double fitness() {
-            return distTravelled * 1000.0 + distToNextHole;
+            return 1000.0 * distTravelled + distToNextHole;
         }
         @Override 
         public void reset() {
@@ -42,21 +42,22 @@ public class GeneticsAlgorithm extends Game {
         }
 		@Override
 		public int compareTo(AIPlayer other) {
-            return Double.compare(fitness(), other.fitness());
+            return Double.compare(other.fitness(), fitness());
 		}
 	}
 
 
-	int population_size, remain_size;
+	int population_size;
+    double remain_percent;
 	double mutate_rate;
 
 	ArrayList<AIPlayer> ai_birds;
 	int cntAlive, generations;
     static Random rand = new Random();
-	GeneticsAlgorithm(int population_size, int remain_size, double mutate_rate) {
+	GeneticsAlgorithm(int population_size, double remain_percent, double mutate_rate) {
 		super();
 		this.population_size = population_size;
-		this.remain_size = remain_size;
+		this.remain_percent = remain_percent;
 		this.mutate_rate = mutate_rate;
 
 		ai_birds = new ArrayList<>();
@@ -69,6 +70,8 @@ public class GeneticsAlgorithm extends Game {
 		generations++;
 		Collections.sort(ai_birds);
         
+        //for (int i = 0; i < population_size; i++) System.out.print(ai_birds.get(i).fitness() + " ");
+        //System.out.println();
 
         double[] prefSumFitness = new double[population_size];
         for (int i = 0; i < population_size; i++) 
@@ -77,16 +80,10 @@ public class GeneticsAlgorithm extends Game {
 
         //System.out.println(Arrays.toString(prefSumFitness));
 
-		for (int i = 0; i < remain_size; i++) {
-            int direct_idx = i;
-            if (i >= remain_size / 2) {
-                direct_idx = Arrays.binarySearch(prefSumFitness, rand.nextDouble() * sumFitness);
-                if (direct_idx < 0) direct_idx = -direct_idx - 1;
-                else direct_idx = Math.min(population_size - 1, direct_idx + 1);
-            }
-            //System.out.println(direct_idx);
-            ai_birds.set(i, new AIPlayer(ai_birds.get(direct_idx).brain.copy()));
-        }
+        int remain_size = (int)(remain_percent * population_size);
+		for (int i = 0; i < remain_size; i++) 
+            ai_birds.set(i, new AIPlayer(ai_birds.get(i).brain.copy()));
+        
 		for (int i = remain_size; i < population_size; i++) {
             int dad_idx = Arrays.binarySearch(prefSumFitness, rand.nextDouble() * sumFitness);
             if (dad_idx < 0) dad_idx = -dad_idx - 1;
@@ -99,7 +96,6 @@ public class GeneticsAlgorithm extends Game {
             NeuralNetwork child_brain = ai_birds.get(dad_idx).brain.crossOverAll(ai_birds.get(mom_idx).brain);
             if (rand.nextBoolean()) child_brain.mutate(mutate_rate);
             ai_birds.set(i, new AIPlayer(child_brain));
-            
         }
 
 		cntAlive = population_size;

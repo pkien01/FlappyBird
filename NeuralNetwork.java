@@ -42,19 +42,16 @@ public class NeuralNetwork {
 		void mutate(double rate) {
 			for (int i = 0; i < out_size; i++)
 				for (int j = 0; j < in_size; j++) 
-					if (Math.random() < rate) weights[i][j] += rand.nextGaussian();
+					if (Math.random() < rate) weights[i][j] = rand.nextGaussian();
 
 			for (int i = 0; i < out_size; i++) 
-				if (Math.random() < rate) bias[i] += rand.nextGaussian();
-		}
-		void crossOverBias(FCLayer mate) {
-			int cutPoint = rand.nextInt(out_size);
-			for (int i = cutPoint; i < out_size; i++) bias[i] = mate.bias[i];
-			//for (int i = 0; i < out_size; i++) if (rand.nextBoolean()) bias[i] = mate.bias[i];
+				if (Math.random() < rate) bias[i] = rand.nextGaussian();
 		}
 		void crossOverAll(FCLayer mate) {
+			/*
 			boolean[] choice = new boolean[out_size];
 			for (int i = 0; i < out_size; i++) choice[i] = rand.nextBoolean();
+
 			for (int i = 0; i < out_size; i++) {
 				if (choice[i]) {
 					for (int j = 0; j < in_size; j++) 
@@ -63,7 +60,12 @@ public class NeuralNetwork {
 			}
 
 			for (int i = 0; i < out_size; i++)
-				if (choice[i]) bias[i] = mate.bias[i];
+				if (choice[i]) bias[i] = mate.bias[i];*/
+
+			for (int i = 0; i < out_size; i++)
+				for (int j = 0; j < in_size; j++) weights[i][j] = (weights[i][j] + mate.weights[i][j]) / 2;
+
+			for (int i = 0; i < out_size; i++) bias[i] = (bias[i] + mate.bias[i]) / 2;
 		}
 		void show() {
 			System.out.println("weights:");
@@ -105,12 +107,6 @@ public class NeuralNetwork {
 	}
 	void mutate(double rate) {
 		for (int i = 0; i < depth - 1; i++) layers[i].mutate(rate);
-	}
-	NeuralNetwork crossOverBias(NeuralNetwork mate) {
-		boolean choose = rand.nextBoolean();
-		NeuralNetwork res = !choose? this.copy() : mate.copy();
-		for (int i = 0; i < depth - 1; i++) res.layers[i].crossOverBias(!choose? mate.layers[i] : this.layers[i]);
-		return res;
 	}
 	NeuralNetwork crossOverAll(NeuralNetwork mate) {
 		NeuralNetwork res = this.copy();

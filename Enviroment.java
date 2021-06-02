@@ -6,13 +6,12 @@ import java.awt.*;
 
 public class Enviroment {
 	static final int groundHeight = 100;
+	static Random rand;
 	static class Pillar {
 		static final int holeLen = Player.displayRadius * 6;
 		static final int minHoleHeight = holeLen / 4, maxHoleHeight = Main.height - groundHeight - holeLen - minHoleHeight;
 		static final int displayWidth = Player.displayRadius * 9 / 2;
 		Color color = Color.GRAY;
-
-		static Random rand;
 
 		boolean flag;
 		Rectangle top, bottom;
@@ -23,7 +22,7 @@ public class Enviroment {
 		}
 		//generate random gap
 		static Pillar generate(int pos) {
-			if (rand == null) rand = new Random();
+			//if (rand == null) rand = new Random();
 			return new Pillar(pos, minHoleHeight + rand.nextInt(maxHoleHeight - minHoleHeight));
 		}
 		boolean passOver(Player player) {
@@ -42,8 +41,10 @@ public class Enviroment {
 	ArrayList<Pillar> pillars;
 	Enviroment() {
 		pillars = new ArrayList<>();
+		rand = new Random(123);
 	}	
 	void reset() {
+		rand = new Random(123);
 		pillars.clear();
 	}
 	int nearestPillarIndex(Player player) {
