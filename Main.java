@@ -1,5 +1,3 @@
-package flappybird;
-
 import javax.swing.*;
 import java.awt.*;
 
@@ -12,9 +10,7 @@ public class Main extends JFrame {
         //frame.setLocationRelativeTo(null);
         
 		frame.setSize(width, height);
-		//frame.add(new Game()); 
-		frame.add(new GeneticsAlgorithm(20, 0.5, 0.2));
-        //frame.add(new QLearning(0.2, 0.8, 0.2));
+		frame.add(new Game()); 
         frame.setVisible(true);
     }
 }
