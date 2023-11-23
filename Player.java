@@ -1,8 +1,7 @@
-import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 
-public class Player {
+public class Player implements Entity {
 	static final int displayRadius = 22;
 	static final int initHeight = (Main.height - Enviroment.groundHeight) / 2;
 	static final double gravity = 0.016, tapSpeed = -1.26;
@@ -48,7 +47,7 @@ public class Player {
 		return height + displayRadius >= Main.height - Enviroment.groundHeight || height - displayRadius < 0;
 	}
 	
-	void update() {
+	public void update() {
 		height += vertSpeed * Game.deltaTime;
 		//if ((int)Math.round(height) - displayRadius < 0) height = displayRadius;
 		//if ((int)Math.round(height) + displayRadius >= Main.height) height = Main.height - displayRadius;
@@ -57,7 +56,7 @@ public class Player {
 		if (Math.abs(wingsAngle + wingsSpeed) > maxWingsAngle) wingsSpeed = -wingsSpeed;
 		wingsAngle += wingsSpeed;
 	}
-	void draw(Graphics g) {
+	public void draw(Graphics g) {
 		//if (outOfScreen()) return;
 		if (height + displayRadius < 0) return;
 		//body

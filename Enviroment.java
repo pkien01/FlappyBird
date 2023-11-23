@@ -2,10 +2,10 @@ import java.util.*;
 import javax.swing.*;
 import java.awt.*;
 
-public class Enviroment {
+public class Enviroment implements Entity {
 	static final int groundHeight = 100;
 	static Random rand;
-	static class Pillar {
+	static class Pillar implements Entity {
 		static final int holeLen = Player.displayRadius * 6;
 		static final int minHoleHeight = holeLen / 4, maxHoleHeight = Main.height - groundHeight - holeLen - minHoleHeight;
 		static final int displayWidth = Player.displayRadius * 9 / 2;
@@ -26,12 +26,13 @@ public class Enviroment {
 		boolean passOver(Player player) {
 			return top.x + displayWidth <= player.displayPos;
 		}
-		void draw(Graphics g) {
+		public void draw(Graphics g) {
 			g.setColor(color);
 			g.fillRect(top.x, top.y, Math.min(top.width, Main.width - top.x), top.height);
 			g.fillRect(bottom.x, bottom.y, Math.min(bottom.width, Main.width - bottom.x), bottom.height);
 		}
-	}
+		public void update() {}
+	} 
 
 	static final int pillarsGap = Main.width / 3;
 	static int speed = 2;
@@ -64,7 +65,7 @@ public class Enviroment {
         }
         return true;
 	}
-	boolean update() {
+	public void update() {
 		ArrayList<Pillar> newPillars = new ArrayList<>();
 		if (!pillars.isEmpty()) {
 			for (Pillar curPillar: pillars) {
@@ -81,9 +82,8 @@ public class Enviroment {
 			newPillars.add(Pillar.generate(lastPos));
 		}
 		pillars = newPillars;
-		return true;
 	}
-	void draw(Graphics g) {
+	public void draw(Graphics g) {
 		g.setColor(new Color(102, 51, 0)); // BROWN
 		g.fillRect(0, Main.height - groundHeight, Main.width, groundHeight);
 		for (Pillar curPillar: pillars) curPillar.draw(g);
