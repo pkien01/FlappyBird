@@ -6,6 +6,8 @@ import java.util.*;
 
 
 public class Game extends JPanel implements ActionListener {
+	enum Mode { NORMAL, GENETIC, QLEARNING}
+
 	static final int deltaTime = 5;
 
 	static class Controller extends KeyAdapter {
@@ -28,13 +30,22 @@ public class Game extends JPanel implements ActionListener {
 
 	Timer timer;
 	Player bird;
+	GeneticAlgorithm genetic;
+	QLearning qlearning;
 	Enviroment env;
 	Controller control;
 	boolean gameStarted, gameOver;
-	public Game() {
-		bird = new Player();
+	Mode mode;
+	public Game(Mode mode) {
 		env = new Enviroment();
+		switch (mode) {
+			case NORMAL: bird = new Player(); break;
+			case GENETIC:  genetic = new GeneticAlgorithm(100, 20, 40, 40); break;
+			case QLEARNING: qlearning = new QLearning(); break;
+			default: throw new RuntimeException("Mode " + mode + " does not exist");
+		}
 		gameStarted = gameOver = false;
+		this.mode = mode;
 
 		control = new Controller();
 		addKeyListener(control);
@@ -50,7 +61,9 @@ public class Game extends JPanel implements ActionListener {
     	g.setColor(Color.CYAN.brighter());
     	g.fillRect(0, 0, Main.width, Main.height);
     	env.draw(g);
-    	bird.draw(g);
+    	if (mode == Mode.NORMAL) bird.draw(g);
+		else if (mode == Mode.GENETIC) genetic.draw(g);
+		else qlearning.draw(g);
     	
     	if (gameOver) {
     		g.setColor(Color.RED);
@@ -59,28 +72,59 @@ public class Game extends JPanel implements ActionListener {
     	}
     	g.setColor(Color.GREEN.darker());
     	g.setFont(new Font("Helvetica", Font.BOLD, 15)); 
-    	g.drawString("Score: " + bird.score, Main.width - 110, 20);
+
+		switch (mode) {
+			case NORMAL: g.drawString("Score: " + bird.score, Main.width - 110, 20);
+			case GENETIC:
+				g.drawString("Generation #: " + genetic.numGenerations, Main.width - 150, 20);
+				g.drawString("Max score : " + genetic.maxScore, Main.width - 150, 40);
+				break;
+			case QLEARNING:
+				g.drawString("Generation #: " + qlearning.numGenerations, Main.width - 150, 20);
+				g.drawString("Max score : " + qlearning.maxScore, Main.width - 150, 40);
+				break;
+		}
     }
     @Override
     public void actionPerformed(ActionEvent event) {
-    	if (!gameOver) {
-    		if (control.curKey == KeyEvent.VK_SPACE) {
-    			gameStarted = true;
-    			bird.tap();
-    			control.reset();
-    		}
-    		if (gameStarted) {
-    			bird.update();
-                env.update();
-                if (bird.crash() || !env.check(bird)) gameOver = true;
-    		}
-    	}
-    	else if (control.curKey == KeyEvent.VK_SPACE) {
-    		bird.reset();
-    		env.reset();
-    		control.reset();
-    		gameStarted = gameOver = false;
-    	}
+		if (mode == Mode.NORMAL) {
+			if (!gameOver) {
+				if (control.curKey == KeyEvent.VK_SPACE) {
+					gameStarted = true;
+					bird.tap();
+					control.reset();
+				}
+				if (gameStarted) {
+					bird.update();
+					env.update();
+					if (bird.crash(env)) gameOver = true;
+				}
+			}
+			else if (control.curKey == KeyEvent.VK_SPACE) {
+				bird.reset();
+				env.reset();
+				control.reset();
+				gameStarted = gameOver = false;
+			}
+		} else if (mode == Mode.GENETIC) {
+			if (control.curKey == KeyEvent.VK_SPACE) {
+				gameStarted = true;
+				control.reset();
+			}
+			if (gameStarted) {
+				env.update();
+				genetic.getEnvironment(env).update();
+			}
+		} else if (mode == Mode.QLEARNING) {
+			if (control.curKey == KeyEvent.VK_SPACE) {
+				gameStarted = true;
+				control.reset();
+			}
+			if (gameStarted) {
+				env.update();
+				qlearning.getEnvironment(env).update();
+			}
+		}
     	repaint();
     }
 

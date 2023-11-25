@@ -7,7 +7,7 @@ public class Enviroment implements Entity {
 	static Random rand;
 	static class Pillar implements Entity {
 		static final int holeLen = Player.displayRadius * 6;
-		static final int minHoleHeight = holeLen / 4, maxHoleHeight = Main.height - groundHeight - holeLen - minHoleHeight;
+		static final int minHoleHeight = holeLen / 10, maxHoleHeight = Main.height - groundHeight - holeLen - minHoleHeight;
 		static final int displayWidth = Player.displayRadius * 9 / 2;
 		Color color = Color.GRAY;
 
@@ -20,7 +20,6 @@ public class Enviroment implements Entity {
 		}
 		//generate random gap
 		static Pillar generate(int pos) {
-			if (rand == null) rand = new Random();
 			return new Pillar(pos, minHoleHeight + rand.nextInt(maxHoleHeight - minHoleHeight));
 		}
 		boolean passOver(Player player) {
@@ -34,13 +33,13 @@ public class Enviroment implements Entity {
 		public void update() {}
 	} 
 
-	static final int pillarsGap = Main.width / 3;
+	static final int pillarsGap = (int)((double)Main.width / 2.5);
 	static int speed = 2;
 
 	ArrayList<Pillar> pillars;
 	Enviroment() {
+		rand = new Random();
 		pillars = new ArrayList<>();
-		//rand = new Random(123);
 	}	
 	void reset() {
 		//rand = new Random(123);
@@ -52,19 +51,7 @@ public class Enviroment implements Entity {
 				return i;
 		return 0;
 	}
-	// returns 0 if no crash, 1 if no crash and pass through, -1 otherwise;
-	boolean check(Player player) {
-		if (!pillars.isEmpty()) {
-            int idx = nearestPillarIndex(player);
-            if (player.crash(pillars.get(idx))) return false;
-            if (!pillars.get(idx).flag && pillars.get(idx).passOver(player)) {
-                pillars.get(idx).flag = true;
-                //pillars.get(idx).color = Color.RED;
-                player.score++;
-            }
-        }
-        return true;
-	}
+
 	public void update() {
 		ArrayList<Pillar> newPillars = new ArrayList<>();
 		if (!pillars.isEmpty()) {

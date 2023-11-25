@@ -29,22 +29,38 @@ public class Player implements Entity {
 	void tap() {
 		vertSpeed = tapSpeed;
 	}
-	/*
-	boolean outOfScreen() {
-		return (int)Math.round(height) + displayRadius < 0 || (int)Math.round(height) - displayRadius >= Main.height;
-	}*/
-	boolean crash(Rectangle rec) {
-		int x_c = displayPos, y_c = (int)Math.round(height);
-		int x_nearest = Math.max(rec.x, Math.min(x_c, rec.x + rec.width));
-		int y_nearest = Math.max(rec.y, Math.min(y_c, rec.y + rec.height));
-		int diff_x = x_nearest - x_c, diff_y = y_nearest - y_c;
-		return diff_x * diff_x + diff_y * diff_y <= displayRadius * displayRadius;
+	double distanceTo(double x, double y) {
+		double diff_x = x - displayPos, diff_y = y - height;
+		return Math.sqrt(diff_x * diff_x + diff_y * diff_y);
+	}
+	double distanceTo(Rectangle rec) {
+		double x_c = displayPos, y_c = height;
+		double x_nearest = Math.max(rec.x, Math.min(x_c, rec.x + rec.width));
+		double y_nearest = Math.max(rec.y, Math.min(y_c, rec.y + rec.height));
+		double diff_x = x_nearest - x_c, diff_y = y_nearest - y_c;
+		return Math.sqrt(diff_x * diff_x + diff_y * diff_y);
+	}
+	double distanceToGround() {
+		return Main.height - Enviroment.groundHeight - (height + displayRadius);
+	}
+	double distanceToCeiling() {
+		return height - displayRadius;
 	}
 	boolean crash(Enviroment.Pillar pillar) {
-		return crash(pillar.top) || crash(pillar.bottom);
+		return distanceTo(pillar.top) <= displayRadius || distanceTo(pillar.bottom) <= displayRadius;
 	}
-	boolean crash() {
-		return height + displayRadius >= Main.height - Enviroment.groundHeight || height - displayRadius < 0;
+	boolean crash(Enviroment env) {
+		if (distanceToGround() < 0 || distanceToCeiling() < 0) return true;
+		if (!env.pillars.isEmpty()) {
+            int idx = env.nearestPillarIndex(this);
+            if (crash(env.pillars.get(idx))) return true;
+            if (!env.pillars.get(idx).flag && env.pillars.get(idx).passOver(this)) {
+                env.pillars.get(idx).flag = true;
+                //pillars.get(idx).color = Color.RED;
+                score++;
+            }
+        }
+        return false;
 	}
 	
 	public void update() {
