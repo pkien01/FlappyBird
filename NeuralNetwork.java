@@ -6,14 +6,17 @@ public class NeuralNetwork implements Serializable {
         Matrix weight, bias;
         int in_size, out_size;
         Matrix input, output;
-        Matrix runningWeightGrad, runningBiasGrad;
+        Matrix moment1Weight, moment1Bias;
+        Matrix moment2Weight, moment2Bias;
         Layer(int in_size, int out_size) {
             weight = new Matrix(out_size, in_size);
             bias = new Matrix(out_size, 1);
             this.in_size = in_size;
             this.out_size = out_size;
-            runningWeightGrad = new Matrix(out_size, in_size, 0.);
-            runningBiasGrad = new Matrix(out_size, 1, 0);
+            moment1Weight = new Matrix(out_size, in_size, 0.);
+            moment2Weight = new Matrix(out_size, in_size, 0.);
+            moment1Bias = new Matrix(out_size, 1, 0);
+            moment2Bias = new Matrix(out_size, 1, 0);
         }
         Layer(Layer other) {
             weight = new Matrix(other.weight);
@@ -31,15 +34,30 @@ public class NeuralNetwork implements Serializable {
             weight.fill(() -> rng.nextGaussian() * std);
             bias.fill(() -> rng.nextGaussian() * std);
         }
-        void computeGrad(Matrix linGrad, double beta) {
+        void computeGrad(Matrix linGrad, double beta1, double beta2) {
             Matrix weightGrad = linGrad.multiply(input.transpose());
-            runningWeightGrad = runningWeightGrad.add(weightGrad, beta); 
+            moment1Weight = moment1Weight.add(weightGrad, beta1);
+            moment2Weight = moment2Weight.add(weightGrad.multiplyEntrywise(weightGrad), beta2);
+
             Matrix biasGrad = new Matrix(linGrad);
-            runningBiasGrad = runningBiasGrad.add(biasGrad, beta);
+            moment1Bias = moment1Bias.add(biasGrad, beta1);
+            moment2Bias = moment2Bias.add(biasGrad.multiplyEntrywise(biasGrad), beta2);
         }
-        void step(double learningRate) {
-            weight.subtractInPlace(runningWeightGrad.multiply(learningRate));
-            bias.subtractInPlace(runningBiasGrad.multiply(learningRate));
+        void step(double learningRate, double beta1, double beta2, int epoch) {
+            double correct1 = 1. + Math.pow(beta1, epoch), correct2 = 1. + Math.pow(beta2, epoch); 
+            Matrix correctedMoment1Weight = moment1Weight.divide(correct1);
+            Matrix correctedMoment1Bias = moment1Bias.divide(correct1);
+            
+            Matrix correctedMoment2Weight = moment2Weight.divide(correct2);
+            Matrix correctedMoment2Bias = moment2Bias.divide(correct2);
+
+            correctedMoment2Weight.applyInPlace(x -> Math.sqrt(x) + 1e-8);
+            correctedMoment2Bias.applyInPlace(x -> Math.sqrt(x) + 1e-8);
+            
+            Matrix weightUpdate = correctedMoment1Weight.divide(correctedMoment2Weight);
+            Matrix biasUpdate = correctedMoment1Bias.divide(correctedMoment2Bias);
+            weight.subtractInPlace(weightUpdate.multiply(learningRate));
+            bias.subtractInPlace(biasUpdate.multiply(learningRate));
         }
     }
     Layer[] layers;
@@ -70,18 +88,16 @@ public class NeuralNetwork implements Serializable {
         }
         return res;
     }
-    void backward(Matrix lastGrad, double runningFactor) {
+    void backward(Matrix lastGrad, double learningRate, double beta1, double beta2, int epoch) {
         Matrix linGrad = lastGrad;
-        layers[layers.length - 1].computeGrad(linGrad, runningFactor);
+        layers[layers.length - 1].computeGrad(linGrad, beta1, beta2);
+        layers[layers.length - 1].step(learningRate, beta1, beta2, epoch);
         for (int i = layers.length - 2; i >= 0; i--) {
             Matrix actGrad = layers[i+1].weight.transpose().multiply(linGrad);
             linGrad = actGrad.multiplyEntrywise(layers[i].output.apply(x -> x > 0? 1. : 0.));
-            layers[i].computeGrad(linGrad, runningFactor);
+            layers[i].computeGrad(linGrad, beta1, beta2);
+            layers[i].step(learningRate, beta1, beta2, epoch);
         }
-    }
-    void step(double learningRate) {
-        for (int i = 0; i < layers.length; i++)
-            layers[i].step(learningRate);
     }
     void save(String fileName) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(fileName))) {

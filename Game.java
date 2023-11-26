@@ -111,8 +111,8 @@ public class Game extends JPanel implements ActionListener {
 				control.reset();
 			}
 			if (gameStarted) {
-				env.update();
 				genetic.update();
+				env.update();
 			}
 		} else if (mode == Mode.QLEARNING) {
 			if (control.curKey == KeyEvent.VK_SPACE) {
@@ -120,8 +120,8 @@ public class Game extends JPanel implements ActionListener {
 				control.reset();
 			}
 			if (gameStarted) {
-				env.update();
 				qlearning.update();
+				env.update();
 			}
 		}
     	repaint();

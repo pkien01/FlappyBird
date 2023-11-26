@@ -87,6 +87,20 @@ public class Matrix implements Serializable {
 			for (int j = 0; j < m; j++) res.data[i][j] = data[i][j] * factor;
 		return res;
 	}
+	Matrix divide(Matrix other) {
+		assert n == other.n;
+		assert m == other.m;
+		Matrix res = new Matrix(n, m);
+		for (int i = 0; i < n; i++)
+			for (int j = 0; j < m; j++) res.data[i][j] = data[i][j] / other.data[i][j];
+		return res;
+	}
+	Matrix divide(double factor) {
+		Matrix res = new Matrix(n, m);
+		for (int i = 0; i < n; i++)
+			for (int j = 0; j < m; j++) res.data[i][j] = data[i][j] / factor;
+		return res;
+	}
 	Matrix add(Matrix other, double alpha) {
 		assert n == other.n;
 		assert m == other.m;
