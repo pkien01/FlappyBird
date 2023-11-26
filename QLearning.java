@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.awt.Graphics;
-
+import java.util.Collections;
 public class QLearning implements Entity {
     static final int[] architecture = {6, 12, 24, 12, 1};
     static final double discountFactor = .7;
@@ -43,19 +43,19 @@ public class QLearning implements Entity {
         final double epsStart = 0.9, epsEnd = 0.01, epsDecay = 1000.;
 
         Random rand = new Random();
-        List<ActionStatePair> posBuffer = new ArrayList<>();
-        List<ActionStatePair> negBuffer = new ArrayList<>();
+        ArrayList<ActionStatePair> posMemory = new ArrayList<>();
+        ArrayList<ActionStatePair> negMemory = new ArrayList<>();
 
-        final int maxLen = 1000000;
+        final int maxMemorySize = 1000000;
 
         double eps = epsStart;
         int overallMaxScore = 0;
         for (int epoch = 0; epoch < maxEpochs; epoch++) {
             //System.out.println("posBuffer size: " + posBuffer.size());
             //System.out.println("negBuffer size: " + negBuffer.size());
-            eps = epsEnd + (epsStart - epsEnd)*Math.exp(-epoch / epsDecay);
+            eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
             //eps *= .9999;
-            //if (epoch % 100 == 0) System.out.println("epoch " + epoch + ": " + eps);
+            //if (epoch % 10 == 0) System.out.println("epoch " + epoch + ": " + eps);
             for (int i = 0; i < batchSize; i++) {
                 State prevState = null;
                 int prevAction = -1;
@@ -68,11 +68,10 @@ public class QLearning implements Entity {
                     if (pred == 1) player.tap();
                     if (prevState != null) {
                         if (player.crash(env)) {
-                            //if (curState.penalty < .99 || curState.penalty > 1.01) System.out.println("Penalty: " + curState.penalty);
-                            negBuffer.add(new ActionStatePair(prevState, curState, prevAction,  -curState.penalty*2));
+                            negBuffer.add(new ActionStatePair(prevState, curState, prevAction,  -5));
                             break;
                         } else 
-                            posBuffer.add(new ActionStatePair(prevState, curState, prevAction,  1));
+                            posBatch.add(new ActionStatePair(prevState, curState, prevAction,  1));
                     }  
                     prevState = curState;
                     prevAction = pred;
@@ -89,20 +88,25 @@ public class QLearning implements Entity {
                 brain.save(Main.Q_LEARNING_FILE_DEFAULT);
                 overallMaxScore = maxScore;
             }
+            Collections.shuffle(posBatch);
+            Collections.shuffle(negBatch);
+
+            posMemory.addAll(posBatch.subList(0, batchSize));
+            negMemory.addAll(negBatch.subList(0, batchSize));
 
             double loss = 0.0;
             for (int i = 0; i < batchSize; i++) {
                 double curLearningRate = initLearningRate / Math.sqrt(epoch + 1);
-                if (!posBuffer.isEmpty()) loss += step(posBuffer.get(rand.nextInt(posBuffer.size())), curLearningRate, runningFactor) / batchSize;
-                if (!negBuffer.isEmpty()) loss += step(negBuffer.get(rand.nextInt(negBuffer.size())), curLearningRate, runningFactor) / batchSize;
+                if (!posMemory.isEmpty()) loss += step(posMemory.get(rand.nextInt(posMemory.size())), curLearningRate, runningFactor) / batchSize;
+                if (!negMemory.isEmpty()) loss += step(negMemory.get(rand.nextInt(negMemory.size())), curLearningRate, runningFactor) / batchSize;
             }
             if (verboseFreq > 0 && epoch % verboseFreq == 0) {
                 System.out.println("[Epoch " + epoch +"] " + "Q loss: " + loss + ", max score: " + maxScore);
                 maxScore = 0;
             }
 
-            while (posBuffer.size() > maxLen) posBuffer.remove(0);
-            while (negBuffer.size() > maxLen) negBuffer.remove(0);
+            while (posBuffer.size() > maxLen) posBuffer.remove(rand.nextInt(posBuffer.size()));
+            while (negBuffer.size() > maxLen) negBuffer.remove(rand.nextInt(negBuffer.size()));
         }
         System.out.println("Q-function training finished");
     }
