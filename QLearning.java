@@ -70,7 +70,7 @@ public class QLearning implements Entity {
                     if (pred == 1) player.tap();
                     if (prevState != null) {
                         if (player.crash(env)) {
-                            if (curState.penalty < 0.99 || curState.penalty > 1.01) System.out.println("penalty: " + curState.penalty);
+                            //if (curState.penalty < 0.99 || curState.penalty > 1.01) System.out.println("penalty: " + curState.penalty);
                             negBatch.add(new ActionStatePair(prevState, curState, prevAction,  -curState.penalty*5));
                             break;
                         } else 
