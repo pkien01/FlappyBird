@@ -40,11 +40,11 @@ public class QLearning implements Entity {
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.9, epsEnd = 0.01, epsDecay = 1000.;
+        final double epsStart = 0.9, epsEnd = 0.01, epsDecay = 5000.;
 
         Random rand = new Random();
-        ArrayList<ActionStatePair> posMemory = new ArrayList<>();
-        ArrayList<ActionStatePair> negMemory = new ArrayList<>();
+        List<ActionStatePair> posMemory = new ArrayList<>();
+        List<ActionStatePair> negMemory = new ArrayList<>();
 
         final int maxMemorySize = 1000000;
 
@@ -55,11 +55,13 @@ public class QLearning implements Entity {
             //System.out.println("negBuffer size: " + negBuffer.size());
             eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
             //eps *= .9999;
-            //if (epoch % 10 == 0) System.out.println("epoch " + epoch + ": " + eps);
+            //if (epoch % 100 == 0) System.out.println("epoch " + epoch + ": " + eps);
+             List<ActionStatePair> posBatch = new ArrayList<>();
+            List<ActionStatePair> negBatch = new ArrayList<>();
             for (int i = 0; i < batchSize; i++) {
                 State prevState = null;
                 int prevAction = -1;
-                while (player.score <= 10000) {
+                while (player.score <= 100000) {
                     State curState = new State(player, env);
                     int pred;
                     if (rand.nextDouble() < eps) pred = rand.nextBoolean()? 1 : 0;
@@ -68,7 +70,8 @@ public class QLearning implements Entity {
                     if (pred == 1) player.tap();
                     if (prevState != null) {
                         if (player.crash(env)) {
-                            negBuffer.add(new ActionStatePair(prevState, curState, prevAction,  -5));
+                            if (curState.penalty < 0.99 || curState.penalty > 1.01) System.out.println("penalty: " + curState.penalty);
+                            negBatch.add(new ActionStatePair(prevState, curState, prevAction,  -curState.penalty*5));
                             break;
                         } else 
                             posBatch.add(new ActionStatePair(prevState, curState, prevAction,  1));
@@ -105,8 +108,8 @@ public class QLearning implements Entity {
                 maxScore = 0;
             }
 
-            while (posBuffer.size() > maxLen) posBuffer.remove(rand.nextInt(posBuffer.size()));
-            while (negBuffer.size() > maxLen) negBuffer.remove(rand.nextInt(negBuffer.size()));
+            if (posMemory.size() > maxMemorySize) posMemory.subList(0, posMemory.size() - maxMemorySize).clear();
+            if (negMemory.size() > maxMemorySize) negMemory.subList(0, negMemory.size() - maxMemorySize).clear();
         }
         System.out.println("Q-function training finished");
     }

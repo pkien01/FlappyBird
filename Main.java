@@ -66,7 +66,7 @@ public class Main {
             File defaultParent = new File((new File(Q_LEARNING_FILE_DEFAULT)).getParent());
             if (!defaultParent.isDirectory()) defaultParent.mkdirs();
             QLearning qLearning = new QLearning(emulator, null);
-            qLearning.optimize(5e-4, iterations, 128, .9, verboseFreq);
+            qLearning.optimize(2e-4, iterations, 128, .9, verboseFreq);
         } 
     }
     public static void main(String[] args) { 
