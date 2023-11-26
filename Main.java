@@ -83,7 +83,7 @@ public class Main {
             }
             else if (args[0].equals("-q") || args[0].equals("--qlearning")) {
                 gameMode = Game.Mode.QLEARNING;
-                verboseFreq = 10;
+                verboseFreq = 100;
                 iterations = 100000;
             }
             else {

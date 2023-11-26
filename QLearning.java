@@ -4,8 +4,8 @@ import java.util.Random;
 import java.awt.Graphics;
 
 public class QLearning implements Entity {
-    static final int[] architecture = {6, 12, 12, 6, 1};
-    static final double discountFactor = .5;
+    static final int[] architecture = {6, 12, 24, 12, 1};
+    static final double discountFactor = .7;
     Player player;
     NeuralNetwork brain;
     boolean died;
@@ -40,7 +40,7 @@ public class QLearning implements Entity {
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.9, epsEnd = 0.05;
+        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 1000.;
 
         Random rand = new Random();
         List<ActionStatePair> posBuffer = new ArrayList<>();
@@ -48,11 +48,14 @@ public class QLearning implements Entity {
 
         final int maxLen = 1000000;
 
+        double eps = 0.5;
         int overallMaxScore = 0;
         for (int epoch = 0; epoch < maxEpochs; epoch++) {
             //System.out.println("posBuffer size: " + posBuffer.size());
             //System.out.println("negBuffer size: " + negBuffer.size());
-            double eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*(epoch + 1));
+            eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
+            //eps *= .9999;
+            //if (epoch % 10 == 0) System.out.println("epoch " + epoch + ": " + eps);
             for (int i = 0; i < batchSize; i++) {
                 State prevState = null;
                 int prevAction = -1;
@@ -65,10 +68,10 @@ public class QLearning implements Entity {
                     if (pred == 1) player.tap();
                     if (prevState != null) {
                         if (player.crash(env)) {
-                            negBuffer.add(new ActionStatePair(prevState, curState, prevAction,  -curState.penalty*10.));
+                            negBuffer.add(new ActionStatePair(prevState, curState, prevAction,  -5));
                             break;
                         } else 
-                            posBuffer.add(new ActionStatePair(prevState, curState, prevAction,  1.));
+                            posBuffer.add(new ActionStatePair(prevState, curState, prevAction,  1));
                     }  
                     prevState = curState;
                     prevAction = pred;
@@ -80,7 +83,7 @@ public class QLearning implements Entity {
                 env.reset();
             }
             
-            if (maxScore > Math.max(2, overallMaxScore*2)) {
+            if (epoch % 1000 == 0 || maxScore >= Math.max(2, overallMaxScore*2)) {
                 brain.save(String.format(Main.Q_LEARNING_FILE_FORMAT, maxScore,  epoch));
                 brain.save(Main.Q_LEARNING_FILE_DEFAULT);
             }
