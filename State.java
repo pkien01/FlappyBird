@@ -10,7 +10,7 @@ public class State {
             Enviroment.Pillar curPillar = env.pillars.get(idx);
             state.add(player.distanceTo(curPillar.top) / Main.width);
             state.add(player.distanceTo(curPillar.bottom) / Main.width);
-            double midPillarHeight = (double)(curPillar.top.y + curPillar.bottom.y) / 2;
+            double midPillarHeight = (curPillar.top.y + curPillar.top.height + curPillar.bottom.y) / 2;
             penalty = player.distanceTo(curPillar.top.x + curPillar.displayWidth, midPillarHeight) / Math.hypot(Enviroment.pillarsGap, Main.height);
         } else {
             state.add(1.);

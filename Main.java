@@ -35,7 +35,7 @@ public class Main {
             GeneticAlgorithm geneticAlgorithm = new GeneticAlgorithm(emulator, 100, 20, 30, 50);
             int prevGeneration = -1;
             int overallMaxScore = 0;
-            while (geneticAlgorithm.maxScore < 1000 && geneticAlgorithm.numGenerations <= iterations) {
+            while (geneticAlgorithm.maxScore <= 100000 && geneticAlgorithm.numGenerations <= iterations) {
                 emulator.update();
                 geneticAlgorithm.update();
                 if (geneticAlgorithm.maxScore >= Math.max(2, overallMaxScore*2)) {
@@ -66,7 +66,7 @@ public class Main {
             File defaultParent = new File((new File(Q_LEARNING_FILE_DEFAULT)).getParent());
             if (!defaultParent.isDirectory()) defaultParent.mkdirs();
             QLearning qLearning = new QLearning(emulator, null);
-            qLearning.optimize(1e-4, iterations, 128, .9, verboseFreq);
+            qLearning.optimize(5e-4, iterations, 128, .9, verboseFreq);
         } 
     }
     public static void main(String[] args) { 
