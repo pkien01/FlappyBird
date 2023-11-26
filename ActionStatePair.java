@@ -1,6 +1,11 @@
 import java.util.List;
 
 public class ActionStatePair {
+    static Matrix getStateActionInput(State state, int action) {
+        List<Double> res = state.toList();
+        res.add((double)action);
+        return new Matrix(res);
+    }
     State curState, nextState;
     int action;
     double reward;

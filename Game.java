@@ -2,8 +2,7 @@ import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.*;
-
+import java.util.List;
 
 public class Game extends JPanel implements ActionListener {
 	enum Mode { NORMAL, GENETIC, QLEARNING}
@@ -40,8 +39,8 @@ public class Game extends JPanel implements ActionListener {
 		env = new Enviroment();
 		switch (mode) {
 			case NORMAL: bird = new Player(); break;
-			case GENETIC:  genetic = new GeneticAlgorithm(100, 20, 40, 40); break;
-			case QLEARNING: qlearning = new QLearning(); break;
+			case GENETIC:  genetic = new GeneticAlgorithm(env, Main.listFiles(Main.GENETIC_FOLDER_DEFAULT)); break;
+			case QLEARNING: qlearning = new QLearning(env, Main.Q_LEARNING_FILE_DEFAULT); break;
 			default: throw new RuntimeException("Mode " + mode + " does not exist");
 		}
 		gameStarted = gameOver = false;
@@ -113,7 +112,7 @@ public class Game extends JPanel implements ActionListener {
 			}
 			if (gameStarted) {
 				env.update();
-				genetic.getEnvironment(env).update();
+				genetic.update();
 			}
 		} else if (mode == Mode.QLEARNING) {
 			if (control.curKey == KeyEvent.VK_SPACE) {
@@ -122,7 +121,7 @@ public class Game extends JPanel implements ActionListener {
 			}
 			if (gameStarted) {
 				env.update();
-				qlearning.getEnvironment(env).update();
+				qlearning.update();
 			}
 		}
     	repaint();

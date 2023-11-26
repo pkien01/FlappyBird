@@ -1,9 +1,8 @@
 import java.awt.Graphics;
+import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-class Agent implements Entity {
+class Agent implements Entity, Serializable {
     static final int[] architecture = {5, 10, 10, 5, 1};
     NeuralNetwork brain;
     Player player;
@@ -12,17 +11,20 @@ class Agent implements Entity {
     State input;
     long distSurvived;
     int epoch;
-    Agent() {
-        brain = new NeuralNetwork(architecture);
+
+    Agent(NeuralNetwork net) {
         player = new Player();
         rand = new Random();
         died = false;
         distSurvived = 0;
         epoch = 1;
+        brain = net;
+    }   
+    Agent() {
+        this(new NeuralNetwork(architecture));
     }
     Agent(Agent other) {
-        this();
-        brain = new NeuralNetwork(other.brain);
+        this(new NeuralNetwork(other.brain));
     }
     public void draw(Graphics g) {
         player.draw(g);
@@ -82,8 +84,9 @@ class Agent implements Entity {
         //Random rand = new Random(1225);
         Agent res = new Agent();
         for (int i = 0; i < brain.layers.length; i++) {
-            res.brain.layers[i].weight = crossOver(brain.layers[i].weight, other.brain.layers[i].weight, rand.nextInt(brain.layers[i].out_size));
-            res.brain.layers[i].bias = crossOver(brain.layers[i].bias, other.brain.layers[i].bias, rand.nextInt(brain.layers[i].out_size));
+            int randCut =  rand.nextInt(brain.layers[i].out_size);
+            res.brain.layers[i].weight = crossOver(brain.layers[i].weight, other.brain.layers[i].weight, randCut);
+            res.brain.layers[i].bias = crossOver(brain.layers[i].bias, other.brain.layers[i].bias, randCut);
         }
         return res;
     }

@@ -1,10 +1,11 @@
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
-public class Matrix {
+public class Matrix implements Serializable {
 	int n, m;
 	double[][] data;
 	Matrix(int rows, int cols) {

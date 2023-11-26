@@ -1,7 +1,8 @@
+import java.io.*;
 import java.util.Random;
 
-public class NeuralNetwork {
-	static class Layer {
+public class NeuralNetwork implements Serializable {
+	static class Layer implements Serializable {
         Matrix weight, bias;
         int in_size, out_size;
         Matrix input, output;
@@ -82,6 +83,21 @@ public class NeuralNetwork {
         for (int i = 0; i < layers.length; i++)
             layers[i].step(learningRate);
     }
+    void save(String fileName) {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(fileName))) {
+            out.writeObject(this);
+        } catch (IOException e) {
+            throw new RuntimeException("Error saving neural network to file: " + fileName, e);
+        }
+    }
+    static NeuralNetwork load(String fileName) {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(fileName))) {
+            return (NeuralNetwork)in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException("Error loading neural network from file: " + fileName, e);
+        }
+    }
+
     static double sigmoid(double x) {
         return 1. / (1. + Math.exp(-x));
     }
