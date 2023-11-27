@@ -5,7 +5,7 @@ import java.awt.Graphics;
 import java.util.Collections;
 public class QLearning implements Entity {
     static final int[] architecture = {6, 12, 24, 12, 1};
-    static final double discountFactor = .25;
+    static final double discountFactor = .9;
     Player player;
     NeuralNetwork brain;
     boolean died;
@@ -22,14 +22,13 @@ public class QLearning implements Entity {
         distSurvived = 0;
     }
 
-    double step(ActionStatePair actionStatePair, double learningRate, int epoch) {
-        Matrix nextPredNoTap = brain.forward(actionStatePair.getNextActionStateInput(0));
-        Matrix nextPredTap = brain.forward(actionStatePair.getNextActionStateInput(1));
-        double reward = (double)actionStatePair.reward + discountFactor * Math.max(nextPredNoTap.data[0][0], nextPredTap.data[0][0]);
+    double step(ActionStatePair actionStatePair, double learningRate, int epoch, NeuralNetwork targetBrain) {
+        Matrix bestNextState = actionStatePair.getNextActionStateInput(getBestAction(actionStatePair.nextState));
+        double targetVal = actionStatePair.reward + discountFactor * targetBrain.forward(bestNextState).data[0][0];
         Matrix curPred = brain.forward(actionStatePair.getCurActionStateInput());
         //System.out.println("predicted reward: " + curPred.data[0][0] + " " + ", actual reward: " + reward);
-        brain.backward(curPred.subtract(reward), learningRate, .9, .999, epoch + 1);
-        return Math.pow(curPred.data[0][0] - reward, 2);
+        brain.backward(curPred.subtract(targetVal), learningRate, .9, .999, epoch + 1);
+        return Math.pow(curPred.data[0][0] - targetVal, 2);
     }
     int getBestAction(State state) {
         double noTapReward = brain.forward(ActionStatePair.getStateActionInput(state, 0)).data[0][0];
@@ -43,16 +42,18 @@ public class QLearning implements Entity {
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 3000.;
+        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 1000.;
+        final double tau = 0.05;
 
         Random rand = new Random();
         List<ActionStatePair> posMemory = new ArrayList<>();
         List<ActionStatePair> negMemory = new ArrayList<>();
 
-        final int maxMemorySize = 2500000;
+        final int maxMemorySize = 1000000;
 
         double eps = epsStart;
         int overallMaxScore = 0;
+        NeuralNetwork target = new NeuralNetwork(brain);
         for (int epoch = 0; epoch < maxEpochs; epoch++) {
             //System.out.println("posBuffer size: " + posBuffer.size());
             //System.out.println("negBuffer size: " + negBuffer.size());
@@ -107,10 +108,14 @@ public class QLearning implements Entity {
             double loss = 0.0;
             for (int i = 0; i < batchSize; i++) {
                 double curLearningRate = initLearningRate;
-                if (!posMemory.isEmpty()) loss += step(posMemory.get(rand.nextInt(posMemory.size())), curLearningRate, epoch) / batchSize;
-                if (!negMemory.isEmpty()) loss += step(negMemory.get(rand.nextInt(negMemory.size())), curLearningRate, epoch) / batchSize;
+                if (!posMemory.isEmpty()) loss += step(posMemory.get(rand.nextInt(posMemory.size())), curLearningRate, epoch, target) / batchSize;
+                if (!negMemory.isEmpty()) loss += step(negMemory.get(rand.nextInt(negMemory.size())), curLearningRate, epoch, target) / batchSize;
             }
 
+            for (int i = 0; i < target.layers.length; i++) {
+                target.layers[i].weight.add(brain.layers[i].weight, 1. - tau);
+                target.layers[i].bias.add(brain.layers[i].bias, 1. - tau);
+            }
            /*  for (int i = 0; i < batchSize; i++) {
                 double curLearningRate = initLearningRate / Math.sqrt(epoch + 1);
                 if (!posBatch.isEmpty()) loss += step(posBatch.get(i % posBatch.size()), curLearningRate) / batchSize;

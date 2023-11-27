@@ -35,7 +35,7 @@ public class Main {
             GeneticAlgorithm geneticAlgorithm = new GeneticAlgorithm(emulator, 100, 20, 30, 50);
             int prevGeneration = -1;
             int overallMaxScore = 0;
-            while (geneticAlgorithm.maxScore <= 100000 && geneticAlgorithm.numGenerations <= iterations) {
+            while (geneticAlgorithm.maxScore <= 1000000 && geneticAlgorithm.numGenerations <= iterations) {
                 geneticAlgorithm.update();
                 emulator.update();
                 if (geneticAlgorithm.maxScore >= Math.max(2, overallMaxScore*2)) {
@@ -66,7 +66,7 @@ public class Main {
             File defaultParent = new File((new File(Q_LEARNING_FILE_DEFAULT)).getParent());
             if (!defaultParent.isDirectory()) defaultParent.mkdirs();
             QLearning qLearning = new QLearning(emulator, null);
-            qLearning.optimize(5e-5, iterations, 128, verboseFreq);
+            qLearning.optimize(2e-4, iterations, 128, verboseFreq);
         } 
     }
     public static void main(String[] args) { 
@@ -79,12 +79,12 @@ public class Main {
             if (args[0].equals("-g") || args[0].equals("--genetic")) {
                 gameMode = Game.Mode.GENETIC;
                 verboseFreq = 500;
-                iterations = 1000000;
+                iterations = 3000000;
             }
             else if (args[0].equals("-q") || args[0].equals("--qlearning")) {
                 gameMode = Game.Mode.QLEARNING;
                 verboseFreq = 500;
-                iterations = 100000;
+                iterations = 1000000;
             }
             else {
                 throw new RuntimeException("Invalid mode: " + args[0]);
