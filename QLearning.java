@@ -5,7 +5,7 @@ import java.awt.Graphics;
 import java.util.Collections;
 public class QLearning implements Entity {
     static final int[] architecture = {6, 12, 24, 12, 1};
-    static final double discountFactor = .7;
+    static final double discountFactor = .25;
     Player player;
     NeuralNetwork brain;
     boolean died;
@@ -106,7 +106,7 @@ public class QLearning implements Entity {
 
             double loss = 0.0;
             for (int i = 0; i < batchSize; i++) {
-                double curLearningRate = initLearningRate / Math.sqrt(epoch + 1);
+                double curLearningRate = initLearningRate;
                 if (!posMemory.isEmpty()) loss += step(posMemory.get(rand.nextInt(posMemory.size())), curLearningRate, epoch) / batchSize;
                 if (!negMemory.isEmpty()) loss += step(negMemory.get(rand.nextInt(negMemory.size())), curLearningRate, epoch) / batchSize;
             }
