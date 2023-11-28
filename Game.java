@@ -73,7 +73,9 @@ public class Game extends JPanel implements ActionListener {
     	g.setFont(new Font("Helvetica", Font.BOLD, 15)); 
 
 		switch (mode) {
-			case NORMAL: g.drawString("Score: " + bird.score, Main.width - 110, 20);
+			case NORMAL: 
+				g.drawString("Score: " + bird.score, Main.width - 110, 20);
+				break;
 			case GENETIC:
 				g.drawString("Generation #: " + genetic.numGenerations, Main.width - 150, 20);
 				g.drawString("Max score : " + genetic.maxScore, Main.width - 150, 40);
