@@ -42,8 +42,9 @@ public class QLearning implements Entity {
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.5, epsEnd = 0.01, epsDecay = 1000.;
+        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 1000.;
         final double tau = 0.05;
+        final double lrDecayRate = 0.96, lrDecayStep = 10000.;
 
         Random rand = new Random();
         List<ActionStatePair> posMemory = new ArrayList<>();
@@ -106,8 +107,9 @@ public class QLearning implements Entity {
             negMemory.addAll(negBatch.subList(0, batchSize));
 
             double loss = 0.0;
+            double curLearningRate = initLearningRate * Math.pow(lrDecayRate, (double)epoch / lrDecayStep);
+            
             for (int i = 0; i < batchSize; i++) {
-                double curLearningRate = initLearningRate;
                 if (!posMemory.isEmpty()) loss += step(posMemory.get(rand.nextInt(posMemory.size())), curLearningRate, epoch, target) / batchSize/ 2;
                 if (!negMemory.isEmpty()) loss += step(negMemory.get(rand.nextInt(negMemory.size())), curLearningRate, epoch, target) / batchSize / 2;
             }
@@ -122,7 +124,7 @@ public class QLearning implements Entity {
                 if (!negBatch.isEmpty()) loss += step(negBatch.get(i % negBatch.size()), curLearningRate) / batchSize;
             }*/
             if (verboseFreq > 0 && epoch % verboseFreq == 0) {
-                System.out.println("[Epoch " + (epoch+1) + "/" + maxEpochs + "] " + "Q loss: " + loss + ", max score: " + maxScore + ", max distance survived: " + maxDistSurvived);
+                System.out.println("[Epoch " + epoch + "/" + maxEpochs + "] " + "Q loss: " + loss + ", max score: " + maxScore + ", max distance survived: " + maxDistSurvived);
                 maxScore = 0;
                 maxDistSurvived = 0;
             }
