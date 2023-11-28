@@ -1,8 +1,10 @@
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.awt.Graphics;
 import java.util.Collections;
+import java.util.Deque;
 public class QLearning implements Entity {
     static final int[] architecture = {6, 12, 24, 12, 1};
     static final double discountFactor = .9;
@@ -11,15 +13,15 @@ public class QLearning implements Entity {
     boolean died;
     Enviroment env;
     int numGenerations, maxScore;
-    long maxDistSurvived, distSurvived;
+    long distSurvived, maxDistSurvived;
     QLearning(Enviroment env, String paramFile) {
         this.env = env;
         player = new Player();
         brain = paramFile != null?  NeuralNetwork.load(paramFile) : new NeuralNetwork(architecture);
         maxScore = 0;
         numGenerations = 0;
-        maxDistSurvived = 0;
         distSurvived = 0;
+        maxDistSurvived = 0;
     }
 
     double step(ActionStatePair actionStatePair, double learningRate, int epoch, NeuralNetwork targetBrain) {
@@ -37,101 +39,109 @@ public class QLearning implements Entity {
         return noTapReward >= tapReward? 0 : 1;
     }
 
+    static class CircularQueue<T> {
+        List<T> buffer;
+        int capacity;
+        int front, rear;
+        CircularQueue(int capacity) {
+            this.capacity = capacity;
+            buffer = new ArrayList<>();
+            front = -1; rear = -1;
+        }
+        int size() {
+            return buffer.size();
+        }
+        void add(T elem) {
+            if (front == -1 && rear == -1) {
+                front = 0; rear = 0;
+            }
+            else {
+                rear = (rear + 1) % capacity;
+                if (rear == front) front++;
+            }
+            while (rear >=buffer.size()) buffer.add(null);
+            buffer.set(rear, elem);
+        }
+        T get(int idx) {
+            assert (idx >= 0 && idx < buffer.size());
+            return buffer.get((front + idx) % capacity);
+        }
+    }
+
     void optimize(double initLearningRate, int maxEpochs, int batchSize, int verboseFreq) {
         System.out.println("Q-function training is starting");
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.5, epsEnd = 0.01, epsDecay = 1000.;
+        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 1000.;
         final double tau = 0.05;
-
-        Random rand = new Random();
-        List<ActionStatePair> posMemory = new ArrayList<>();
-        List<ActionStatePair> negMemory = new ArrayList<>();
-
         final int maxMemorySize = 1000000;
 
+        Random rand = new Random();
+        CircularQueue<ActionStatePair> memory = new CircularQueue<>(maxMemorySize);
+
         double eps = epsStart;
-        int overallMaxScore = 0;
         NeuralNetwork target = new NeuralNetwork(brain);
         for (int epoch = 0; epoch < maxEpochs; epoch++) {
-            //System.out.println("posBuffer size: " + posBuffer.size());
-            //System.out.println("negBuffer size: " + negBuffer.size());
             eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
-            //eps *= .9999;
-            //if (epoch % 100 == 0) System.out.println("epoch " + epoch + ": " + eps);
-             List<ActionStatePair> posBatch = new ArrayList<>();
-            List<ActionStatePair> negBatch = new ArrayList<>();
-            for (int i = 0; i < batchSize; i++) {
-                State prevState = null;
-                int prevAction = -1;
-                while (player.score <= 100000) {
-                    State curState = new State(player, env);
-                    if (prevState != null) {
-                        if (player.crash(env)) {
-                            //if (curState.penalty < 0.99 || curState.penalty > 1.01) System.out.println("penalty: " + curState.penalty);
-                            negBatch.add(new ActionStatePair(prevState, curState, prevAction,  -curState.penalty*3));
-                            break;
-                        } else 
-                            posBatch.add(new ActionStatePair(prevState, curState, prevAction,  1));
-                    }  
-                    int pred;
-                    if (rand.nextDouble() < eps) pred = rand.nextBoolean()? 1 : 0;
-                    else pred = getBestAction(curState);
-                    if (pred == 1) player.tap();
-
-                    prevState = curState;
-                    prevAction = pred;
-
-                    distSurvived++;
-                    player.update();
-                    env.update();
-                }
-                maxDistSurvived = Math.max(maxDistSurvived, distSurvived);
-                maxScore = Math.max(maxScore, player.score);
-                distSurvived  = 0;
-                player.reset();
-                env.reset();
-            }
-            
-            if (maxScore > overallMaxScore) {
-                brain.save(String.format(Main.Q_LEARNING_FILE_FORMAT, maxScore,  epoch));
-                brain.save(Main.Q_LEARNING_FILE_DEFAULT);
-                overallMaxScore = maxScore;
-            }
-            Collections.shuffle(posBatch);
-            Collections.shuffle(negBatch);
-
-            posMemory.addAll(posBatch.subList(0, batchSize));
-            negMemory.addAll(negBatch.subList(0, batchSize));
 
             double loss = 0.0;
-            for (int i = 0; i < batchSize; i++) {
-                double curLearningRate = initLearningRate;
-                if (!posMemory.isEmpty()) loss += step(posMemory.get(rand.nextInt(posMemory.size())), curLearningRate, epoch, target) / batchSize/ 2;
-                if (!negMemory.isEmpty()) loss += step(negMemory.get(rand.nextInt(negMemory.size())), curLearningRate, epoch, target) / batchSize / 2;
+            State prevState = null;
+            int prevAction = -1;
+            while (player.score <= 100000) {
+                State curState = new State(player, env);
+                if (prevState != null) {
+                    if (player.crash(env)) {
+                        //if (curState.penalty < 0.99 || curState.penalty > 1.01) System.out.println("penalty: " + curState.penalty);
+                        memory.add(new ActionStatePair(prevState, curState, prevAction,  -curState.penalty));
+                        break;
+                    } else {
+                        memory.add(new ActionStatePair(prevState, curState, prevAction,  1));
+                    }
+
+                    for (int i = 0; i < batchSize; i++) {
+                        double curLearningRate = initLearningRate;
+                        loss += step(memory.get(rand.nextInt(memory.size())), curLearningRate, epoch, target) / batchSize;
+                    }
+
+                    for (int i = 0; i < target.layers.length; i++) {
+                        target.layers[i].weight.add(brain.layers[i].weight, 1. - tau);
+                        target.layers[i].bias.add(brain.layers[i].bias, 1. - tau);
+                    }   
+
+                }  
+
+                int pred;
+                if (rand.nextDouble() < eps) pred = rand.nextBoolean()? 1 : 0;
+                else pred = getBestAction(curState);
+                if (pred == 1) player.tap();
+
+                prevState = curState;
+                prevAction = pred;
+
+                distSurvived++;
+                player.update();
+                env.update();
             }
 
-            for (int i = 0; i < target.layers.length; i++) {
-                target.layers[i].weight.add(brain.layers[i].weight, 1. - tau);
-                target.layers[i].bias.add(brain.layers[i].bias, 1. - tau);
+            maxDistSurvived = Math.max(maxDistSurvived, distSurvived);
+            maxScore = Math.max(maxScore, player.score);
+
+            if (player.score >= Math.max(2, maxScore*2)) {
+                brain.save(String.format(Main.Q_LEARNING_FILE_FORMAT, maxScore,  epoch));
+                brain.save(Main.Q_LEARNING_FILE_DEFAULT);
             }
-           /*  for (int i = 0; i < batchSize; i++) {
-                double curLearningRate = initLearningRate / Math.sqrt(epoch + 1);
-                if (!posBatch.isEmpty()) loss += step(posBatch.get(i % posBatch.size()), curLearningRate) / batchSize;
-                if (!negBatch.isEmpty()) loss += step(negBatch.get(i % negBatch.size()), curLearningRate) / batchSize;
-            }*/
             if (verboseFreq > 0 && epoch % verboseFreq == 0) {
-                System.out.println("[Epoch " + (epoch+1) + "/" + maxEpochs + "] " + "Q loss: " + loss + ", max score: " + maxScore + ", max distance survived: " + maxDistSurvived);
-                maxScore = 0;
-                maxDistSurvived = 0;
+                System.out.println("[Epoch " + epoch + "/" + maxEpochs + "] " + "Q loss: " + loss + ", score: " + maxScore + ", distance survived: " + maxDistSurvived);
             }
-
-            if (posMemory.size() > maxMemorySize) posMemory.subList(0, posMemory.size() - maxMemorySize).clear();
-            if (negMemory.size() > maxMemorySize) negMemory.subList(0, negMemory.size() - maxMemorySize).clear();
+            
+            distSurvived  = 0;
+            player.reset();
+            env.reset();
         }
         System.out.println("Q-function training finished");
     }
+
     public void update() {
         if (died) {
             maxScore = Math.max(maxScore, player.score);
@@ -141,7 +151,6 @@ public class QLearning implements Entity {
             died = false;
             //posBuffer = posBuffer.subList(0, Math.min(1000, posBuffer.size()));
             //negBuffer = negBuffer.subList(0, Math.min(1000, negBuffer.size()));
-            maxDistSurvived = Math.max(maxDistSurvived, distSurvived);
             distSurvived = 0;
             return;
         }

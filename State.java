@@ -3,6 +3,7 @@ import java.util.*;
 public class State {
     List<Double> state;
     double penalty;
+
     State(Player player, Enviroment env) {
         state = new ArrayList<>();
         int idx = env.nearestPillarIndex(player);
