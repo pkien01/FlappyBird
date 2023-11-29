@@ -20,7 +20,7 @@ public class Matrix implements Serializable {
 	}
 	Matrix(List<Double> data) {
 		n = data.size(); m = 1;
-		this.data = new double[n][1];
+		this.data = new double[n][m];
 		for (int i = 0; i < n; i++) 
 			this.data[i][0] = data.get(i);
 	}
@@ -28,6 +28,12 @@ public class Matrix implements Serializable {
 		this(other.n, other.m);
 		for (int i = 0; i < n; i++)
 			for (int j = 0; j < m; j++) data[i][j] = other.data[i][j];
+	}
+	Matrix(double ...elem) {
+		n = elem.length; m = 1;
+		this.data = new double[n][m];
+		for (int i = 0; i < n; i++) 
+			this.data[i][0] = elem[i];
 	}
 	Matrix multiply(Matrix other) {
 		assert m == other.n;

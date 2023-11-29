@@ -93,7 +93,7 @@ public class GeneticAlgorithm implements Entity, Serializable {
         for (Agent agent: agents) {
             if (agent.isAlive()) {
                 maxScore = Math.max(maxScore, agent.player.score);
-                maxDistSurvived = Math.max(maxDistSurvived, agent.distSurvived);
+                maxDistSurvived = Math.max(maxDistSurvived, agent.player.distSurvived);
                 agent.getInput(env).update();
                 numAlives++;
             }

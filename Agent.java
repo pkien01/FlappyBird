@@ -9,14 +9,12 @@ class Agent implements Entity, Serializable {
     Random rand;
     boolean died;
     State input;
-    long distSurvived;
     int epoch;
 
     Agent(NeuralNetwork net) {
         player = new Player();
         rand = new Random();
         died = false;
-        distSurvived = 0;
         epoch = 1;
         brain = net;
     }   
@@ -39,7 +37,6 @@ class Agent implements Entity, Serializable {
     }
     public void update() {
         //if (distSurvived % 100 == 0) System.out.println("input = " + input);
-        distSurvived++;
         assert input.size() == architecture[0];
         Matrix lastLayer = brain.forward(input.toMatrix()); // need a 5x1 matrix here
         assert lastLayer.n == architecture[architecture.length - 1];
@@ -91,7 +88,7 @@ class Agent implements Entity, Serializable {
         return res;
     }
     long fitness() {
-        return distSurvived;
+        return player.distSurvived;
     }
     boolean isAlive() {
         return !died;

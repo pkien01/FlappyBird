@@ -88,7 +88,7 @@ public class NeuralNetwork implements Serializable {
         }
         return res;
     }
-    void backward(Matrix lastGrad, double learningRate, double beta1, double beta2, int epoch) {
+    Matrix backward(Matrix lastGrad, double learningRate, double beta1, double beta2, int epoch) {
         Matrix linGrad = lastGrad;
         layers[layers.length - 1].computeGrad(linGrad, beta1, beta2);
         layers[layers.length - 1].step(learningRate, beta1, beta2, epoch);
@@ -98,6 +98,7 @@ public class NeuralNetwork implements Serializable {
             layers[i].computeGrad(linGrad, beta1, beta2);
             layers[i].step(learningRate, beta1, beta2, epoch);
         }
+        return layers[0].weight.transpose().multiply(linGrad);
     }
     void save(String fileName) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(fileName))) {
@@ -113,6 +114,22 @@ public class NeuralNetwork implements Serializable {
             throw new RuntimeException("Error loading neural network from file: " + fileName, e);
         }
     }
+    static NeuralNetwork load(ObjectInputStream in) {
+        try {
+            return (NeuralNetwork)in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException("Error loading neural network from ObjectInputStream", e);
+        }
+    }
+    void save(ObjectOutputStream out) {
+        try {
+            out.writeObject(this);
+        } catch (IOException e) {
+            throw new RuntimeException("Error loading neural network from ObjectInputStream", e);
+        }
+    }
+
+
 
     static double sigmoid(double x) {
         return 1. / (1. + Math.exp(-x));
