@@ -24,6 +24,12 @@ public class Matrix implements Serializable {
 		for (int i = 0; i < n; i++) 
 			this.data[i][0] = data.get(i);
 	}
+	Matrix(double ...elems) {
+		n = elems.length; m = 1;
+		this.data = new double[n][m];
+		for (int i = 0; i < n; i++) 
+			this.data[i][0] = elems[i];
+	}
 	Matrix(Matrix other) {
 		this(other.n, other.m);
 		for (int i = 0; i < n; i++)

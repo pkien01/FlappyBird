@@ -13,18 +13,21 @@ public class Player implements Entity {
 	int wingsAngle, wingsSpeed;
 	double height, vertSpeed;
 	int score;
+	long distSurvived;
 
 	Player() {
 		this.height = (double)initHeight;
 		vertSpeed = 0.0;
 		score = 0;
 		wingsAngle = 0; wingsSpeed = 5;
+		distSurvived = 0;
 	}
 	void reset() {
 		this.height = (double)initHeight;
 		vertSpeed = 0.0;
 		score = 0;
 		wingsAngle = 0; wingsSpeed = 5;
+		distSurvived = 0;
 	}
 	void tap() {
 		vertSpeed = tapSpeed;
@@ -71,6 +74,7 @@ public class Player implements Entity {
 
 		if (Math.abs(wingsAngle + wingsSpeed) > maxWingsAngle) wingsSpeed = -wingsSpeed;
 		wingsAngle += wingsSpeed;
+		distSurvived++;
 	}
 	public void draw(Graphics g) {
 		//if (outOfScreen()) return;
