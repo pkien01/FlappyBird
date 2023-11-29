@@ -48,9 +48,9 @@ public class QLearning implements Entity {
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 1000.;
+        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 5000.;
         final double tau = 0.05;
-        final double lrDecayRate = 0.96, lrDecayStep = 10000.;
+        final double lrDecayRate = 0.96, lrDecayStep = 50000.;
 
         Random rand = new Random();
         List<ActionStatePair> memory = new ArrayList<>();
@@ -109,8 +109,9 @@ public class QLearning implements Entity {
             double loss = 0.0;
             double curLearningRate = initLearningRate * Math.pow(lrDecayRate, (double)epoch / lrDecayStep);
             
-            for (int i = 0; i < batchSize; i++) {
-                if (!memory.isEmpty()) loss += step(memory.get(rand.nextInt(memory.size())), curLearningRate, epoch, target) / batchSize;
+            if (!memory.isEmpty()) {
+                for (int i = 0; i < batchSize; i++) 
+                    loss += step(memory.get(rand.nextInt(memory.size())), curLearningRate, epoch, target) / batchSize;
             }
 
             /*for (int i = 0; i < target.layers.length; i++) {
