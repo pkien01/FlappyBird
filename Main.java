@@ -66,7 +66,7 @@ public class Main {
             File defaultParent = new File((new File(Q_LEARNING_FILE_DEFAULT)).getParent());
             if (!defaultParent.isDirectory()) defaultParent.mkdirs();
             QLearning qLearning = new QLearning(emulator, null);
-            qLearning.optimize(1e-5, 1e-5, iterations, 64, verboseFreq);
+            qLearning.optimize(1e-6, 1e-4, iterations, 64, verboseFreq);
         } 
     }
     public static void main(String[] args) { 
@@ -83,7 +83,7 @@ public class Main {
             }
             else if (args[0].equals("-q") || args[0].equals("--qlearning")) {
                 gameMode = Game.Mode.QLEARNING;
-                verboseFreq = 500;
+                verboseFreq = 1000;
                 iterations = 1000000;
             }
             else {
