@@ -79,7 +79,7 @@ public class QLearning implements Entity {
         }
     }
 
-    void optimize(double initActorLearningRate, double initCriticLearningRate, double initBodyLearningRate, int maxEpochs, int batchSize, int verboseFreq) {
+    void optimize(double initActorLearningRate, double initCriticLearningRate, int maxEpochs, int batchSize, int verboseFreq) {
         System.out.println("Q-function training is starting");
 
         //System.out.println("posBuffer size: " + posBuffer.size());
