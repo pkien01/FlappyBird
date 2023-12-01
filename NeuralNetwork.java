@@ -42,19 +42,15 @@ public class NeuralNetwork implements Serializable {
             accBiasGrad.fill(() -> 0.);
         }
         void computeGrad(Matrix linGrad) {
-            accWeightGrad.add(linGrad.multiply(input.transpose()));
-            accBiasGrad.add(new Matrix(linGrad));
+            accWeightGrad.addInPlace(linGrad.multiply(input.transpose()));
+            accBiasGrad.addInPlace(new Matrix(linGrad));
         }
-        void step(double learningRate, double beta1, double beta2, int epoch, int batchSize) {
-            Matrix avgWeightGrad = accWeightGrad.divide(batchSize);
-            avgWeightGrad.applyInPlace(x -> Math.min(100., Math.max(-100., x)));
-            moment1Weight = moment1Weight.add(avgWeightGrad, beta1);
-            moment2Weight = moment2Weight.add(avgWeightGrad.multiplyEntrywise(avgWeightGrad), beta2);
+        void step(double learningRate, double beta1, double beta2, int epoch) {
+            moment1Weight = moment1Weight.add(accWeightGrad, beta1);
+            moment2Weight = moment2Weight.add(accWeightGrad.multiplyEntrywise(accWeightGrad), beta2);
 
-            Matrix avgBiasGrad = accBiasGrad.divide(batchSize);
-            avgBiasGrad.applyInPlace(x -> Math.min(100., Math.max(-100., x)));
-            moment1Bias = moment1Bias.add(avgBiasGrad, beta1);
-            moment2Bias = moment2Bias.add(avgBiasGrad.multiplyEntrywise(avgBiasGrad), beta2);
+            moment1Bias = moment1Bias.add(accBiasGrad, beta1);
+            moment2Bias = moment2Bias.add(accBiasGrad.multiplyEntrywise(accBiasGrad), beta2);
 
             double correct1 = 1. + Math.pow(beta1, epoch), correct2 = 1. + Math.pow(beta2, epoch); 
             Matrix correctedMoment1Weight = moment1Weight.divide(correct1);
@@ -110,11 +106,13 @@ public class NeuralNetwork implements Serializable {
         }
         return layers[0].weight.transpose().multiply(linGrad);
     }
-    void step(double learningRate, double beta1, double beta2, int epoch, int batchSize) {
-        for (int i = 0; i < layers.length; i++) {
-            layers[i].step(learningRate, beta1, beta2, epoch, batchSize);
+    void step(double learningRate, double beta1, double beta2, int epoch) {
+        for (int i = 0; i < layers.length; i++)
+            layers[i].step(learningRate, beta1, beta2, epoch);
+    }
+    void zeroGrad() {
+        for (int i = 0; i < layers.length; i++)
             layers[i].zeroGrad();
-        }
     }
     void save(String fileName) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(fileName))) {
