@@ -92,7 +92,7 @@ public class NeuralNetwork implements Serializable {
         for (int i = 0; i < layers.length; i++) {
             res = layers[i].linear(res);
             assert res.n == layers[i].out_size;
-            if (i != layers.length - 1) res.applyInPlace(x -> Math.max(x, 0.));
+            if (i != layers.length - 1) res.applyInPlace(x -> x > 0? x : 0.01*(Math.exp(x) - 1));
         }
         return res;
     }
@@ -101,7 +101,7 @@ public class NeuralNetwork implements Serializable {
         layers[layers.length - 1].computeGrad(linGrad);
         for (int i = layers.length - 2; i >= 0; i--) {
             Matrix actGrad = layers[i+1].weight.transpose().multiply(linGrad);
-            linGrad = actGrad.multiplyEntrywise(layers[i].output.apply(x -> x > 0? 1. : 0.));
+            linGrad = actGrad.multiplyEntrywise(layers[i].output.apply(x -> x > 0? 1. : 0.01*Math.exp(x)));
             layers[i].computeGrad(linGrad);
         }
         return layers[0].weight.transpose().multiply(linGrad);

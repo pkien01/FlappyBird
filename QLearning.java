@@ -1,12 +1,14 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
+import java.util.PriorityQueue;
 import java.util.Random;
 import java.awt.Graphics;
 import java.io.*;
+import java.util.Comparator;
 public class QLearning implements Entity {
-    static final int[] criticArchitecture = {5, 128, 1};
-    static final int[] actorArchitecture = {5, 128, 1};
+    static final int[] criticArchitecture = {5, 256, 1};
+    static final int[] actorArchitecture = {5, 256, 1};
     static final double discountFactor = .99;
     Player player;
     NeuralNetwork actor, critic;
@@ -40,7 +42,7 @@ public class QLearning implements Entity {
         }
     }
     
-    double[] computeLoss(ActionStatePair actionStatePair,int batchSize,  double eps) {
+    double[] computeLoss(ActionStatePair actionStatePair,int batchSize, double entropyFactor) {
         /*Matrix bestNextState = actionStatePair.getNextActionStateInput(getBestAction(actionStatePair.nextState));
         double targetVal = actionStatePair.reward + discountFactor * targetBrain.forward(bestNextState).data[0][0];
         Matrix curPred = brain.forward(actionStatePair.getCurActionStateInput());
@@ -56,10 +58,10 @@ public class QLearning implements Entity {
         double actionProb = NeuralNetwork.sigmoid(actorOutput);
         double expOutput = Math.exp(-actorOutput);
         double entropyGrad = expOutput*actionProb*actionProb*(1. - NeuralNetwork.stablizeLog(expOutput + 1.));
-        actor.backward(new Matrix((-advantage * (1. - actionProb) - eps*entropyGrad) / batchSize));
+        actor.backward(new Matrix((-advantage * (1. - actionProb) - entropyFactor*entropyGrad) / batchSize));
         
         double entropyLoss = actionProb * NeuralNetwork.stablizeLog(actionProb);
-        return new double[]{advantage*advantage *.5 / batchSize, (-NeuralNetwork.stablizeLog(actionProb)*advantage - eps*entropyLoss) / batchSize};
+        return new double[]{advantage*advantage *.5 / batchSize, (-NeuralNetwork.stablizeLog(actionProb)*advantage - entropyFactor*entropyLoss) / batchSize};
     }
     int getBestAction(State state) {
         double actorOutput = NeuralNetwork.sigmoid(actor.forward(state.toMatrix()).data[0][0]);
@@ -83,33 +85,52 @@ public class QLearning implements Entity {
         }
     }
 
+    static class EnviromentPlayerPair {
+        Enviroment enviroment;
+        Player player;
+        EnviromentPlayerPair(Enviroment enviroment, Player player) {
+            this.enviroment = new Enviroment(enviroment);
+            this.player = new Player(player);
+        }
+    }
+
     void optimize(double initCriticLearningRate, double initActorLearningRate,  int maxEpochs, int batchSize, int verboseFreq) {
         System.out.println("Q-function training is starting");
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 5000.;
+        final double epsStart = .9, epsEnd = .05, epsDecay = 5000.;
         final double tau = 0.03;
         final double lrDecayRate = 0.95, lrDecayStep = 10000.;
+        final int maxMemoryCapacity = 1000000;
 
         Random rand = new Random();
 
         //double eps = epsStart;
         int maxScore = 0;
         long maxDistSurvived = 0;
+        CircularBuffer<EnviromentPlayerPair> memory = new CircularBuffer<>(maxMemoryCapacity);
         for (int epoch = 0; epoch < maxEpochs; epoch++) {
             critic.zeroGrad();
             actor.zeroGrad();
-
-            List<ActionStatePair> episode = new ArrayList<>();
             
-            player.reset();
-            env.reset();
+            double eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
+            if (memory.size() == 0 || rand.nextDouble() < eps) {
+                player.reset();
+                env.reset();
+            } else {
+                EnviromentPlayerPair prevGame = memory.get(rand.nextInt(memory.size()));
+                player = new Player(prevGame.player);
+                env = new Enviroment(prevGame.enviroment);
+            }
+            List<ActionStatePair> episode = new ArrayList<>();
+            CircularBuffer<EnviromentPlayerPair> window = new CircularBuffer<>(100);
             while (player.score <= 100000) {
                 State curState = new State(player, env);
+                window.add(new EnviromentPlayerPair(env, player));
                 
                 if (player.crash(env)) {
-                    episode.add(new ActionStatePair(curState, null, 0, -Math.max(curState.penalty*100, 10.))); 
+                    episode.add(new ActionStatePair(curState, null, 0, -Math.max(curState.penalty*100, 1.))); 
                     break;
                 }
                 int action = getStochasticAction(curState, rand);
@@ -121,14 +142,16 @@ public class QLearning implements Entity {
                 State nextState = new State(player, env);
                 episode.add(new ActionStatePair(curState, nextState, action, 1.));
             }
+            
+            for (int i = (int)(.4*window.size()); i <= (int)(.92 * window.size()); i++) 
+                memory.add(window.get(i));
 
             for (int i = episode.size() - 2; i >= 0; i--) 
                 episode.get(i).reward += discountFactor * episode.get(i + 1).reward;
 
-            double eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
             double actorLoss = .0, criticloss = .0;
             for (int i = 0; i < episode.size(); i++) {
-                double[] curLosses = computeLoss(episode.get(i), episode.size(), eps);
+                double[] curLosses = computeLoss(episode.get(i), episode.size(), .1);
                 criticloss += curLosses[0];
                 actorLoss += curLosses[1];
             }
