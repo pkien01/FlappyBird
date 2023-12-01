@@ -22,6 +22,13 @@ public class Player implements Entity {
 		wingsAngle = 0; wingsSpeed = 5;
 		distSurvived = 0;
 	}
+	Player(Player other) {
+		height = other.height;
+		vertSpeed = other.vertSpeed;
+		score = other.score;
+		wingsAngle = other.wingsAngle; wingsSpeed = other.wingsSpeed;
+		distSurvived = other.distSurvived;
+	}
 	void reset() {
 		this.height = (double)initHeight;
 		vertSpeed = 0.0;

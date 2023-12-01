@@ -3,7 +3,7 @@ import java.util.List;
 import java.util.Random;
 import java.awt.Graphics;
 public class QLearning implements Entity {
-    static final int[] architecture = {6, 12, 24, 12, 1};
+    static final int[] architecture = {6, 128, 128, 1};
     static final double discountFactor = .99;
     Player player;
     NeuralNetwork brain;
@@ -14,16 +14,16 @@ public class QLearning implements Entity {
         brain = paramFile != null?  NeuralNetwork.load(paramFile) : new NeuralNetwork(architecture);
     }
 
-    double step(ActionStatePair actionStatePair, NeuralNetwork targetBrain, double learningRate, int epoch, int batchSize) {
+    double step(ActionStatePair actionStatePair) {
         double targetVal = actionStatePair.reward;
-        if (actionStatePair.nextState != null) {
+        /*if (actionStatePair.nextState != null) {
             Matrix bestNextState = actionStatePair.getNextActionStateInput(getBestAction(actionStatePair.nextState));
             targetVal += discountFactor * targetBrain.forward(bestNextState).data[0][0];
-        }
+        }*/
         //Matrix targetVal = new Matrix(actionStatePair.reward);
         Matrix curPred = brain.forward(actionStatePair.getCurActionStateInput());
-        brain.backward(curPred.subtract(targetVal).divide(batchSize), learningRate, .9, .999, epoch + 1);
-        return Math.pow(curPred.data[0][0] - targetVal, 2) / batchSize;
+        brain.backward(curPred.subtract(targetVal));
+        return Math.pow(curPred.data[0][0] - targetVal, 2) / 2;
     }
     int getBestAction(State state) {
         double noTapReward = brain.forward(ActionStatePair.getStateActionInput(state, 0)).data[0][0];
@@ -45,37 +45,54 @@ public class QLearning implements Entity {
         }
     }
 
+    static class EnviromentPlayerPair {
+        Enviroment enviroment;
+        Player player;
+        EnviromentPlayerPair(Enviroment enviroment, Player player) {
+            this.enviroment = new Enviroment(enviroment);
+            this.player = new Player(player);
+        }
+    }
+
     void optimize(double initLearningRate, int maxEpochs, int batchSize, int verboseFreq) {
         System.out.println("Q-function training is starting");
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 1000.;
-        final double tau = 0.01;
+        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 5000.;
+        //final double tau = 0.01;
         final double lrDecayRate = 0.96, lrDecayStep = 10000.;
         final int maxMemorySize = 1000000;
 
         Random rand = new Random();
-        CircularBuffer<ActionStatePair> memory = new CircularBuffer<>(maxMemorySize);
+        CircularBuffer<ActionStatePair> stateMemory = new CircularBuffer<>(maxMemorySize);
+        CircularBuffer<EnviromentPlayerPair> gameMemory = new CircularBuffer<>(maxMemorySize);
 
         int maxScore = 0;
         long maxDistSurvived = 0;
-        NeuralNetwork target = new NeuralNetwork(brain);
+        //NeuralNetwork target = new NeuralNetwork(brain);
         for (int epoch = 0; epoch < maxEpochs; epoch++) {
             //System.out.println("posBuffer size: " + posBuffer.size());
             //System.out.println("negBuffer size: " + negBuffer.size());
             double eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
-            double curLearningRate = initLearningRate * Math.pow(lrDecayRate, (double)epoch / lrDecayStep);
-            player.reset();
-            env.reset();
+            //double curLearningRate = initLearningRate * Math.pow(lrDecayRate, (double)epoch / lrDecayStep);
+            double curLearningRate = initLearningRate;
+            if (gameMemory.size() == 0 || rand.nextDouble() < .2) {
+                player.reset();
+                env.reset();
+            } else {
+                EnviromentPlayerPair prevGame = gameMemory.get(rand.nextInt(gameMemory.size()));
+                player = new Player(prevGame.player);
+                env = new Enviroment(prevGame.enviroment);
+            }
             
-            double loss = 0.0;
+            CircularBuffer<EnviromentPlayerPair> window = new CircularBuffer<>(100);
+            List<ActionStatePair> episode = new ArrayList<>();
             while (player.score <= 100000) {
                 State curState = new State(player, env);
-                
+                window.add(new EnviromentPlayerPair(env, player));
+
                 int action;
-                double curEps = eps;
-                if (player.distSurvived > maxDistSurvived) curEps = Math.min(epsStart, eps*1.25);
                 if (rand.nextDouble() < eps) action = rand.nextBoolean()? 1 : 0;
                 else action = getBestAction(curState);
                 if (action == 1) player.tap();
@@ -84,22 +101,41 @@ public class QLearning implements Entity {
                 env.update();
                 
                 if (player.crash(env)) {
-                    memory.add(new ActionStatePair(curState, null, action, -curState.penalty*100.)); 
+                    episode.add(new ActionStatePair(curState, null, action, -100.)); 
                     break;
                 }
                 State nextState = new State(player, env);
-                memory.add(new ActionStatePair(curState, nextState, action, 1.));
-
-                for (int i = 0; i < batchSize; i++)
-                    loss += step(memory.get(rand.nextInt(memory.size())), target, curLearningRate, epoch, batchSize);
-
-                for (int i = 0; i < target.layers.length; i++) {
-                    target.layers[i].weight.add(brain.layers[i].weight, 1. - tau);
-                    target.layers[i].bias.add(brain.layers[i].bias, 1. - tau);
-                }
+                episode.add(new ActionStatePair(curState, nextState, action, 0.));
             }
 
-            loss /= player.distSurvived;
+            for (int i = episode.size() - 2; i >= 0; i--)
+                episode.get(i).reward += discountFactor*episode.get(i + 1).reward;
+            
+            double meanReward = episode.stream().mapToDouble(x -> x.reward).average().getAsDouble();
+            double stdReward = Math.sqrt(episode.stream().mapToDouble(x -> Math.pow(x.reward - meanReward, 2)).average().getAsDouble());
+
+            for (int i = 0; i < episode.size(); i++) 
+                episode.get(i).reward = (episode.get(i).reward - meanReward) / (stdReward + 1e-9);
+            
+            episode.forEach(item -> stateMemory.add(item));
+
+            brain.zeroGrad();
+            double loss = 0.0;
+            for (int i = 0; i < batchSize; i++) {
+                loss += step(stateMemory.get(rand.nextInt(stateMemory.size()))) / batchSize;
+            }
+            brain.step(curLearningRate, .9, .999, epoch, batchSize);
+
+
+            /*for (int i = 0; i < target.layers.length; i++) {
+                target.layers[i].weight.add(brain.layers[i].weight, 1. - tau);
+                target.layers[i].bias.add(brain.layers[i].bias, 1. - tau);
+            }*/
+            if (episode.size() == 100) {
+                for (int i = 30; i <= 90; i++) 
+                    gameMemory.add(window.get(i));
+            }
+
             maxDistSurvived = Math.max(maxDistSurvived, player.distSurvived);
             evaluate();
             if (verboseFreq > 0 && epoch % verboseFreq == 0) {

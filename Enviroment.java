@@ -41,6 +41,10 @@ public class Enviroment implements Entity {
 		rand = new Random();
 		pillars = new ArrayList<>();
 	}	
+	Enviroment(Enviroment other) {
+		rand = new Random();
+		pillars = new ArrayList<>(other.pillars);
+	}
 	void reset() {
 		//rand = new Random(123);
 		pillars.clear();
