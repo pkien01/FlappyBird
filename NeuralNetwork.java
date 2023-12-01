@@ -8,11 +8,14 @@ public class NeuralNetwork implements Serializable {
         Matrix input, output;
         Matrix moment1Weight, moment1Bias;
         Matrix moment2Weight, moment2Bias;
+        Matrix accWeightGrad, accBiasGrad;
         Layer(int in_size, int out_size) {
             weight = new Matrix(out_size, in_size);
             bias = new Matrix(out_size, 1);
             this.in_size = in_size;
             this.out_size = out_size;
+            accWeightGrad = new Matrix(out_size, in_size, 0.);
+            accBiasGrad = new Matrix(out_size, 1, 0);
             moment1Weight = new Matrix(out_size, in_size, 0.);
             moment2Weight = new Matrix(out_size, in_size, 0.);
             moment1Bias = new Matrix(out_size, 1, 0);
@@ -34,16 +37,25 @@ public class NeuralNetwork implements Serializable {
             weight.fill(() -> rng.nextGaussian() * std);
             bias.fill(() -> rng.nextGaussian() * std);
         }
-        void computeGrad(Matrix linGrad, double beta1, double beta2) {
-            Matrix weightGrad = linGrad.multiply(input.transpose());
-            moment1Weight = moment1Weight.add(weightGrad, beta1);
-            moment2Weight = moment2Weight.add(weightGrad.multiplyEntrywise(weightGrad), beta2);
-
-            Matrix biasGrad = new Matrix(linGrad);
-            moment1Bias = moment1Bias.add(biasGrad, beta1);
-            moment2Bias = moment2Bias.add(biasGrad.multiplyEntrywise(biasGrad), beta2);
+        void zeroGrad() {
+            accWeightGrad.fill(() -> 0.);
+            accBiasGrad.fill(() -> 0.);
         }
-        void step(double learningRate, double beta1, double beta2, int epoch) {
+        void computeGrad(Matrix linGrad) {
+            accWeightGrad.add(linGrad.multiply(input.transpose()));
+            accBiasGrad.add(new Matrix(linGrad));
+        }
+        void step(double learningRate, double beta1, double beta2, int epoch, int batchSize) {
+            Matrix avgWeightGrad = accWeightGrad.divide(batchSize);
+            avgWeightGrad.applyInPlace(x -> Math.min(100., Math.max(-100., x)));
+            moment1Weight = moment1Weight.add(avgWeightGrad, beta1);
+            moment2Weight = moment2Weight.add(avgWeightGrad.multiplyEntrywise(avgWeightGrad), beta2);
+
+            Matrix avgBiasGrad = accBiasGrad.divide(batchSize);
+            avgBiasGrad.applyInPlace(x -> Math.min(100., Math.max(-100., x)));
+            moment1Bias = moment1Bias.add(avgBiasGrad, beta1);
+            moment2Bias = moment2Bias.add(avgBiasGrad.multiplyEntrywise(avgBiasGrad), beta2);
+
             double correct1 = 1. + Math.pow(beta1, epoch), correct2 = 1. + Math.pow(beta2, epoch); 
             Matrix correctedMoment1Weight = moment1Weight.divide(correct1);
             Matrix correctedMoment1Bias = moment1Bias.divide(correct1);
@@ -88,17 +100,21 @@ public class NeuralNetwork implements Serializable {
         }
         return res;
     }
-    Matrix backward(Matrix lastGrad, double learningRate, double beta1, double beta2, int epoch) {
+    Matrix backward(Matrix lastGrad) {
         Matrix linGrad = lastGrad;
-        layers[layers.length - 1].computeGrad(linGrad, beta1, beta2);
-        layers[layers.length - 1].step(learningRate, beta1, beta2, epoch);
+        layers[layers.length - 1].computeGrad(linGrad);
         for (int i = layers.length - 2; i >= 0; i--) {
             Matrix actGrad = layers[i+1].weight.transpose().multiply(linGrad);
             linGrad = actGrad.multiplyEntrywise(layers[i].output.apply(x -> x > 0? 1. : 0.));
-            layers[i].computeGrad(linGrad, beta1, beta2);
-            layers[i].step(learningRate, beta1, beta2, epoch);
+            layers[i].computeGrad(linGrad);
         }
         return layers[0].weight.transpose().multiply(linGrad);
+    }
+    void step(double learningRate, double beta1, double beta2, int epoch, int batchSize) {
+        for (int i = 0; i < layers.length; i++) {
+            layers[i].step(learningRate, beta1, beta2, epoch, batchSize);
+            layers[i].zeroGrad();
+        }
     }
     void save(String fileName) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(fileName))) {
@@ -128,8 +144,6 @@ public class NeuralNetwork implements Serializable {
             throw new RuntimeException("Error loading neural network from ObjectInputStream", e);
         }
     }
-
-
 
     static double sigmoid(double x) {
         return 1. / (1. + Math.exp(-x));

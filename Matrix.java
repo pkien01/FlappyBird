@@ -59,6 +59,12 @@ public class Matrix implements Serializable {
 			for (int j = 0; j < m; j++) res.data[i][j] = data[i][j] + other.data[i][j];
 		return res;
 	} 
+	void addInPlace(Matrix other) {
+		assert n == other.n;
+		assert m == other.m;
+		for (int i = 0; i < n; i++)
+			for (int j = 0; j < m; j++) data[i][j] += other.data[i][j];
+	}
 	Matrix subtract(Matrix other) {
 		assert n == other.n;
 		assert m == other.m;

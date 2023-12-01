@@ -6,7 +6,7 @@ import java.io.*;
 public class QLearning implements Entity {
     static final int[] criticArchitecture = {5, 64, 64, 1};
     static final int[] actorArchitecture = {5, 64, 64, 1};
-    static final double discountFactor = .95;
+    static final double discountFactor = .99;
     Player player;
     NeuralNetwork actor, critic;
     boolean died;
@@ -39,7 +39,7 @@ public class QLearning implements Entity {
         }
     }
     
-    double[] step(ActionStatePair actionStatePair, double actorLearningRate, double criticLearningRate, int epoch) {
+    double[] computeLoss(ActionStatePair actionStatePair) {
         /*Matrix bestNextState = actionStatePair.getNextActionStateInput(getBestAction(actionStatePair.nextState));
         double targetVal = actionStatePair.reward + discountFactor * targetBrain.forward(bestNextState).data[0][0];
         Matrix curPred = brain.forward(actionStatePair.getCurActionStateInput());
@@ -49,13 +49,13 @@ public class QLearning implements Entity {
       
         double criticOutput = critic.forward(actionStatePair.curState.toMatrix()).data[0][0];
         double advantage = actionStatePair.reward - criticOutput;
-        critic.backward(new Matrix(-advantage), criticLearningRate, .9, .999, epoch+1);
+        critic.backward(new Matrix(-advantage *.5));
         
         double actorOutput = actor.forward(actionStatePair.curState.toMatrix()).data[0][0];
         double actionProb = NeuralNetwork.sigmoid(actorOutput);
-        actor.backward(new Matrix(-advantage * (1. - actionProb)), actorLearningRate, .9, .999, epoch + 1);
+        actor.backward(new Matrix(-advantage * (1. - actionProb)));
         
-        return new double[]{advantage*advantage, -NeuralNetwork.stablizeLog(actionProb)*advantage};
+        return new double[]{advantage*advantage *.5, -NeuralNetwork.stablizeLog(actionProb)*advantage};
     }
     int getBestAction(State state) {
         double actorOutput = NeuralNetwork.sigmoid(actor.forward(state.toMatrix()).data[0][0]);
@@ -89,9 +89,6 @@ public class QLearning implements Entity {
         final double lrDecayRate = 0.95, lrDecayStep = 10000.;
 
         Random rand = new Random();
-        List<ActionStatePair> memory = new ArrayList<>();
-
-        final int maxMemorySize = 2000000;
 
         //double eps = epsStart;
         int maxScore = 0;
@@ -102,56 +99,44 @@ public class QLearning implements Entity {
             //eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
             //eps *= .9999;
             //if (epoch % 100 == 0) System.out.println("epoch " + epoch + ": " + eps);
-            for (int i = 0; i < batchSize; i++) {
-                List<ActionStatePair> episode = new ArrayList<>();
-                player.reset();
-                env.reset();
+            List<ActionStatePair> episode = new ArrayList<>();
+            player.reset();
+            env.reset();
+            
+            while (player.score <= 100000) {
+                State curState = new State(player, env);
                 
-                while (player.score <= 100000) {
-                    State curState = new State(player, env);
-                    
-                    if (player.crash(env)) {
-                        episode.add(new ActionStatePair(curState, null, 0, -curState.penalty*10)); 
-                        break;
-                    }
-                    int action = getStochasticAction(curState, rand);
-                    if (action != 0) player.tap();
-                    player.update();
-                    env.update();
-                    
-                    State nextState = new State(player, env);
-                    episode.add(new ActionStatePair(curState, nextState, action, 1.));
+                if (player.crash(env)) {
+                    episode.add(new ActionStatePair(curState, null, 0, -curState.penalty*100)); 
+                    break;
                 }
-
-                for (int j = episode.size() - 2; j >= 0; j--) 
-                    episode.get(j).reward += discountFactor * episode.get(j + 1).reward;
-                    
-                if (episode.size() > 10) episode.subList(0, episode.size() - 10).clear();
-                int memoryOverflow =  memory.size() + episode.size() - maxMemorySize;
-                if (memoryOverflow <= 0) memory.addAll(episode);
-                else if (memoryOverflow <= memory.size()) {
-                    memory.subList(0, memoryOverflow).clear();
-                    memory.addAll(episode);
-                } else {
-                    memory.clear();
-                    memoryOverflow -= memory.size();
-                    episode.subList(0, memoryOverflow).clear();
-                    memory.addAll(episode);
-                }
+                int action = getStochasticAction(curState, rand);
+                if (action != 0) player.tap();
+                player.update();
+                env.update();
+                
+                State nextState = new State(player, env);
+                episode.add(new ActionStatePair(curState, nextState, action, 1.));
             }
 
+            for (int j = episode.size() - 2; j >= 0; j--) 
+                episode.get(j).reward += discountFactor * episode.get(j + 1).reward;
+
+            double actorLoss = .0, criticloss = .0;
+            for (int i = 0; i < episode.size(); i++) {
+                double[] curLosses = computeLoss(episode.get(i));
+                criticloss += curLosses[0];
+                actorLoss += curLosses[1];
+            }
+            criticloss /= episode.size();
+            actorLoss /= episode.size();
 
             double curLrDecay =  Math.pow(lrDecayRate, (double)epoch / lrDecayStep);
             double curActorLearningRate = initActorLearningRate * curLrDecay;
             double curCriticLearningRate = initCriticLearningRate * curLrDecay;
-            double actorLoss = .0, criticloss = .0;
-            for (int i = 0; i < batchSize; i++) {
-                if (!memory.isEmpty()) {
-                    double[] curLosses = step(memory.get(rand.nextInt(memory.size())), curActorLearningRate, curCriticLearningRate, epoch);
-                    criticloss += curLosses[0] / batchSize;
-                    actorLoss += curLosses[1] / batchSize;
-                }
-            }
+            critic.step(curCriticLearningRate, .9, .999, epoch, 1);
+            actor.step(curActorLearningRate, .9, .999, epoch, 1);
+
             evaluate();
             if (verboseFreq > 0 && epoch % verboseFreq == 0) {
                 System.out.println("[Epoch " + epoch + "/" + maxEpochs + "] " + "   critic loss: " + criticloss + ", actor loss: " + actorLoss  + ", score: " + player.score + ", distance survived: " + player.distSurvived);
