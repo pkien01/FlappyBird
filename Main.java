@@ -1,16 +1,18 @@
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.stream.Collectors;
 import java.util.List;
 
 public class Main {
 	static final int width = 600, height = 600;  
 
-    static final String Q_LEARNING_FILE_FORMAT = "./qlearning/score-%d-epoch-%d"; 
-    static final String Q_LEARNING_FILE_DEFAULT = "./qlearning/default";
+    static final String Q_LEARNING_FILE_FORMAT = "./qlearning_%s/score-%d-epoch-%d"; 
+    static final String Q_LEARNING_FILE_DEFAULT = "./qlearning_%s/default";
 
-    static final String GENETIC_FILE_FORMAT = "./genetic/maxscore-%d-generation-%d/score-%d-bird-%d";
-    static final String GENETIC_FOLDER_DEFAULT = "./genetic/default";
+    static final String GENETIC_FILE_FORMAT = "./genetic_%s/maxscore-%d-generation-%d/score-%d-bird-%d";
+    static final String GENETIC_FOLDER_DEFAULT = "./genetic_%s/default";
     static final String GENETIC_FILE_DEFAULT = GENETIC_FOLDER_DEFAULT + "/score-%d-bird-%d";
 
     public static void play(Game.Mode gameMode) {
@@ -29,8 +31,9 @@ public class Main {
     }
     public static void train(Game.Mode gameMode, int iterations, int verboseFreq) {
         Enviroment emulator = new Enviroment();
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
         if (gameMode == Game.Mode.GENETIC) {
-            File defaultParent = new File(GENETIC_FOLDER_DEFAULT);
+            File defaultParent = new File(String.format(GENETIC_FOLDER_DEFAULT, timeStamp));
             if (!defaultParent.isDirectory()) defaultParent.mkdirs();
             GeneticAlgorithm geneticAlgorithm = new GeneticAlgorithm(emulator, 100, 20, 30, 50);
             int prevGeneration = -1;
@@ -63,7 +66,7 @@ public class Main {
             System.out.println("max score = " + geneticAlgorithm.maxScore + ", max distance survived = " + geneticAlgorithm.maxDistSurvived);
         }
         else if (gameMode == Game.Mode.QLEARNING) {
-            File defaultParent = new File((new File(Q_LEARNING_FILE_DEFAULT)).getParent());
+            File defaultParent = new File(String.format((new File(Q_LEARNING_FILE_DEFAULT)).getParent(), timeStamp));
             if (!defaultParent.isDirectory()) defaultParent.mkdirs();
             QLearning qLearning = new QLearning(emulator, null);
             qLearning.optimize(1e-3, iterations, 128, verboseFreq);

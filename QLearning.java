@@ -5,6 +5,7 @@ import java.awt.Graphics;
 public class QLearning implements Entity {
     static final int[] architecture = {6, 128, 128, 1};
     static final double discountFactor = .99;
+    static final int terminateScore = 100000;
     Player player;
     NeuralNetwork brain;
     Enviroment env;
@@ -35,7 +36,7 @@ public class QLearning implements Entity {
     void evaluate() {
         player.reset();
         env.reset();
-        while (player.score <= 100000) {
+        while (player.score <= terminateScore) {
             if (player.crash(env)) return;
             State curState = new State(player, env);
             if (getBestAction(curState) == 1) player.tap();
@@ -88,7 +89,7 @@ public class QLearning implements Entity {
             
             CircularBuffer<EnviromentPlayerPair> window = new CircularBuffer<>(100);
             List<ActionStatePair> episode = new ArrayList<>();
-            while (player.score <= 100000) {
+            while (player.score <= terminateScore) {
                 State curState = new State(player, env);
                 window.add(new EnviromentPlayerPair(env, player));
 
@@ -142,7 +143,7 @@ public class QLearning implements Entity {
                 System.out.println("[Epoch " + epoch + "/" + maxEpochs + "] " + "Q loss: " + loss + ", score: " + player.score + ", distance survived: " + player.distSurvived);
             }   
 
-            if (player.score > Math.max(2, maxScore)) {
+            if (player.score >= terminateScore || player.score > Math.max(2, maxScore)) {
                 brain.save(String.format(Main.Q_LEARNING_FILE_FORMAT, maxScore,  epoch));
                 brain.save(Main.Q_LEARNING_FILE_DEFAULT);
                 maxScore = player.score;
