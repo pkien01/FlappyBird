@@ -3,7 +3,7 @@ import java.util.List;
 import java.util.Random;
 import java.awt.Graphics;
 public class QLearning implements Entity {
-    static final int[] architecture = {6, 128, 128, 1};
+    static final int[] architecture = {6, 128, 1};
     static final double discountFactor = .99;
     static final int terminateScore = 100000;
     Player player;
@@ -15,7 +15,7 @@ public class QLearning implements Entity {
         brain = paramFile != null?  NeuralNetwork.load(paramFile) : new NeuralNetwork(architecture);
     }
 
-    double step(ActionStatePair actionStatePair) {
+    double computeLoss(ActionStatePair actionStatePair) {
         double targetVal = actionStatePair.reward;
         /*if (actionStatePair.nextState != null) {
             Matrix bestNextState = actionStatePair.getNextActionStateInput(getBestAction(actionStatePair.nextState));
@@ -60,9 +60,9 @@ public class QLearning implements Entity {
 
         //System.out.println("posBuffer size: " + posBuffer.size());
         //System.out.println("negBuffer size: " + negBuffer.size());
-        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 5000.;
+        final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 10000.;
         //final double tau = 0.01;
-        final double lrDecayRate = 0.96, lrDecayStep = 10000.;
+        final double lrDecayRate = 0.95, lrDecayStep = 10000.;
         final int maxMemorySize = 1000000;
 
         Random rand = new Random();
@@ -72,13 +72,12 @@ public class QLearning implements Entity {
         int maxScore = 0;
         long maxDistSurvived = 0;
         //NeuralNetwork target = new NeuralNetwork(brain);
-        for (int epoch = 0; epoch < maxEpochs; epoch++) {
+        for (int epoch = 0; epoch < maxEpochs && player.score < terminateScore; epoch++) {
             //System.out.println("posBuffer size: " + posBuffer.size());
             //System.out.println("negBuffer size: " + negBuffer.size());
             double eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
-            //double curLearningRate = initLearningRate * Math.pow(lrDecayRate, (double)epoch / lrDecayStep);
-            double curLearningRate = initLearningRate;
-            if (gameMemory.size() == 0 || rand.nextDouble() < .2) {
+            double curLearningRate = initLearningRate * Math.pow(lrDecayRate, (double)epoch / lrDecayStep);
+            if (gameMemory.size() == 0 || rand.nextDouble() < .25) {
                 player.reset();
                 env.reset();
             } else {
@@ -123,7 +122,7 @@ public class QLearning implements Entity {
             brain.zeroGrad();
             double loss = 0.0;
             for (int i = 0; i < batchSize; i++) {
-                loss += step(stateMemory.get(rand.nextInt(stateMemory.size()))) / batchSize;
+                loss += computeLoss(stateMemory.get(rand.nextInt(stateMemory.size()))) / batchSize;
             }
             brain.step(curLearningRate, .9, .999, epoch, batchSize);
 
