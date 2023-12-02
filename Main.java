@@ -21,8 +21,8 @@ public class Main {
         frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
         //frame.setLocationRelativeTo(null);
         
-		frame.setSize(width, height);
-		frame.add(new Game(gameMode)); 
+	frame.setSize(width, height);
+	frame.add(new Game(gameMode)); 
         frame.setVisible(true);
     }
     public static List<String> listFiles(String folder) {
@@ -53,7 +53,7 @@ public class Main {
             while (geneticAlgorithm.maxScore <= 1000000 && geneticAlgorithm.numGenerations <= iterations) {
                 geneticAlgorithm.update();
                 emulator.update();
-                if (geneticAlgorithm.maxScore >= Math.max(2, overallMaxScore*2)) {
+                if (geneticAlgorithm.maxScore >= 1000000 || geneticAlgorithm.maxScore >= Math.max(2, overallMaxScore*2)) {
                     String folderName = String.format((new File(GENETIC_FILE_FORMAT)).getParent(), geneticAlgorithm.maxScore, geneticAlgorithm.numGenerations);
                     File folder = new File(folderName);
                     if (!folder.exists()) folder.mkdirs();
@@ -94,12 +94,12 @@ public class Main {
             int verboseFreq = 0, iterations = 0;
             if (args[0].equals("-g") || args[0].equals("--genetic")) {
                 gameMode = Game.Mode.GENETIC;
-                verboseFreq = 500;
+                verboseFreq = 10;
                 iterations = 3000000;
             }
             else if (args[0].equals("-q") || args[0].equals("--qlearning")) {
                 gameMode = Game.Mode.QLEARNING;
-                verboseFreq = 100;
+                verboseFreq = 10;
                 iterations = 1000000;
             }
             else {

@@ -5,7 +5,7 @@ import java.awt.Graphics;
 public class QLearning implements Entity {
     static final int[] architecture = {6, 128, 1};
     static final double discountFactor = .99;
-    static final int terminateScore = 100000;
+    static final int terminateScore = 1000000;
     double[] qValues;
     Player player;
     NeuralNetwork brain;
@@ -64,7 +64,7 @@ public class QLearning implements Entity {
         //System.out.println("negBuffer size: " + negBuffer.size());
         final double epsStart = 0.9, epsEnd = 0.05, epsDecay = 10000.;
         //final double tau = 0.01;
-        final double lrDecayRate = 0.95, lrDecayStep = 10000.;
+        final double lrDecayRate = 0.95, lrDecayStep = 50000.;
         final int maxMemorySize = 1000000;
 
         Random rand = new Random();
@@ -72,9 +72,9 @@ public class QLearning implements Entity {
         CircularBuffer<EnviromentPlayerPair> gameMemory = new CircularBuffer<>(maxMemorySize);
 
         int maxScore = 0;
-        long maxDistSurvived = 0;
+        //long maxDistSurvived = 0;
         //NeuralNetwork target = new NeuralNetwork(brain);
-        for (int epoch = 0; epoch < maxEpochs && player.score < terminateScore; epoch++) {
+        for (int epoch = 0; epoch < maxEpochs; epoch++) {
             //System.out.println("posBuffer size: " + posBuffer.size());
             //System.out.println("negBuffer size: " + negBuffer.size());
             double eps = epsEnd + (epsStart - epsEnd) * Math.exp(-1.*epoch / epsDecay);
@@ -138,17 +138,18 @@ public class QLearning implements Entity {
                     gameMemory.add(window.get(i));
             }
 
-            maxDistSurvived = Math.max(maxDistSurvived, player.distSurvived);
+            //maxDistSurvived = Math.max(maxDistSurvived, player.distSurvived);
             evaluate();
             if (verboseFreq > 0 && epoch % verboseFreq == 0) {
                 System.out.println("[Epoch " + epoch + "/" + maxEpochs + "] " + "Q loss: " + loss + ", score: " + player.score + ", distance survived: " + player.distSurvived);
             }   
 
-            if (player.score >= terminateScore || player.score > Math.max(2, maxScore)) {
-                brain.save(String.format(Main.Q_LEARNING_FILE_FORMAT, maxScore,  epoch));
+            if (player.score >= terminateScore || player.score >= Math.max(2, maxScore*2)) {
+                brain.save(String.format(Main.Q_LEARNING_FILE_FORMAT, player.score,  epoch));
                 brain.save(Main.Q_LEARNING_FILE_DEFAULT);
                 maxScore = player.score;
             }
+            if (maxScore >= terminateScore) break; 
         }
         System.out.println("Q-function training finished");
     }
