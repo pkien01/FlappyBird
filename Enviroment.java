@@ -33,7 +33,7 @@ public class Enviroment implements Entity {
 		public void update() {}
 	} 
 
-	static final int pillarsGap = (int)((double)Main.width / 2.5);
+	static final int pillarsGap = (int)((double)Main.width / 3);
 	static int speed = 2;
 
 	ArrayList<Pillar> pillars;
