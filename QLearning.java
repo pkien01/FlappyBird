@@ -6,6 +6,7 @@ public class QLearning implements Entity {
     static final int[] architecture = {6, 128, 1};
     static final double discountFactor = .99;
     static final int terminateScore = 100000;
+    double[] qValues;
     Player player;
     NeuralNetwork brain;
     Enviroment env;
@@ -13,6 +14,7 @@ public class QLearning implements Entity {
         this.env = env;
         player = new Player();
         brain = paramFile != null?  NeuralNetwork.load(paramFile) : new NeuralNetwork(architecture);
+        qValues = new double[2];
     }
 
     double computeLoss(ActionStatePair actionStatePair) {
@@ -27,10 +29,10 @@ public class QLearning implements Entity {
         return Math.pow(curPred.data[0][0] - targetVal, 2) / 2;
     }
     int getBestAction(State state) {
-        double noTapReward = brain.forward(ActionStatePair.getStateActionInput(state, 0)).data[0][0];
-        double tapReward = brain.forward(ActionStatePair.getStateActionInput(state, 1)).data[0][0];
+        qValues[0] = brain.forward(ActionStatePair.getStateActionInput(state, 0)).data[0][0];
+        qValues[1] = brain.forward(ActionStatePair.getStateActionInput(state, 1)).data[0][0];
         //System.out.println("noTapReward: " + noTapReward + ", tapReward: " + tapReward);
-        return noTapReward >= tapReward? 0 : 1;
+        return qValues[0] >= qValues[1]? 0 : 1;
     }
 
     void evaluate() {

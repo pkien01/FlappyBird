@@ -81,7 +81,9 @@ public class Game extends JPanel implements ActionListener {
 				g.drawString("Max score: " + genetic.maxScore, Main.width - 150, 40);
 				break;
 			case QLEARNING:
-				g.drawString("Score:  " + qlearning.player.score, Main.width - 110, 20);
+				g.drawString("Score:  " + qlearning.player.score, Main.width - 144, 20);
+				g.drawString("No jump Q value:  " + String.format("%.4f", qlearning.qValues[0]*100.), Main.width - 220, 40);
+				g.drawString("Jump Q value:  " + String.format("%.4f", qlearning.qValues[1]*100.), Main.width - 200, 60);
 				break;
 		}
     }
