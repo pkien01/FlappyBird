@@ -3,7 +3,7 @@ import java.io.Serializable;
 import java.util.*;
 
 class Agent implements Entity, Serializable {
-    static final int[] architecture = {5, 128, 1};
+    static final int[] architecture = {5, 15, 25, 15, 1};
     NeuralNetwork brain;
     Player player;
     Random rand;
