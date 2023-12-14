@@ -57,7 +57,7 @@ An action, on the other hand, is a binary number: 1 if jump and 0 otherwise.
 <br/>
 
 This approach employs survival-of-the-fittest scheme: 
-- Initially we have n birds, each of which is a neural network with randomized parameters, simultaneously playing the game. The neural network is a parameterized function that outputs an action given a state.
+- Initially we have n birds, each of which is a neural network with randomized parameters, simultaneously playing the game. The neural network is a parameterized function that outputs an action given a state. In the real implementation, we actually have the network outputs a stochastic action (i.e. a probability $p$ of jumping instead of a hard 0 or 1); we can get the action by setting a threshold, such as $p > 0.7$.
 - We let the birds play the game until everyone dies.
 - The next generation of birds are selected as follow:
     - $k$ birds are sampled directly
@@ -119,7 +119,7 @@ for epoch in range(maxEpochs):
         if random() < eps:
             action = randomBool()
         else:
-            action = 0 if net.forward([state, 0]) >= net.forward([state, 1])
+            action = 0 if net.forward([state + [0]]) >= net.forward([state + [1]]) else 1
 
         player.update()
         env.update()
@@ -137,7 +137,8 @@ for epoch in range(maxEpochs):
         gameMemory.extend(frames[-90:-30])
 
     batch = sample(stateMemory, batchSize)
-    loss = sum((net.forward(batch))) / batchSize
+    inputs, labels = batch[:2], batch[2]
+    loss = sum(((net.forward(inputs) - labels))**2 / 2) / batchSize
     net.step(loss)
 
     evaluate()
@@ -148,6 +149,91 @@ for epoch in range(maxEpochs):
 
 
 ## Low level details
+We now dive into the fun part: math!
+#### How does a neural network compute the output based on the input?
+
+- Assume the input is a single vector $\vec{x}$.
+- The network has $L$ layers. Each layer $l$ is parameterized by the weight matrix $W_{l}$ and a bias $b_{l}$. It computes  some linear combination of the previous layer's output $\vec{a}_{l - 1}$ ($\vec{x}$ in the case of the first layer):
+```math
+\vec{z}_{l} = W_{l}a_{l - 1} + \vec{b}_{l}
+```
+- Did I made a typo? Why is that $z_{l}$ instead of $a_{l}$? If you analyze carefully, the network above would just compute a linear function of $\vec{x}$ after passing it through all of its layers. 
+```math
+z_{L - 1} = W_{L - 1}(W_{L-2}(W_{L-3}\ldots(W_{0}\vec{x} + \vec{b}_0) \ldots + \vec{b}_{L-3}) + \vec{b}_{L-2}) + \vec{b}_{L-1} 
+```
+```math
+ = (W_{L-1}W_{L-2}W_{L-3}\ldots W_{0})\vec{x} +(W_{L-1}W_{L-2}W_{L-3}\ldots W_{1})\vec{b}_1 + \ldots 
+```
+```math
+ = [some\ constant\ matrix]\vec{x} + [some\ constant\ vector]
+```
+
+- However we clearly know that the output we want to achieve, whether it is an action (genetic algorithm) or the cumulative reward of a state action pair (Q-learning), cannot be just a linear function of the input. Therefore, we would have to introduce non-linearity $f$ to the $z_{l}$ value above:
+$$a_{l} = f(z_{l})$$
+- Based on well-studied research and testing it empirically, we choose the non-linearity (or activation function) as follows:
+```math
+f(z_{l}) = \begin{cases} 
+z_{l},& \text{if } z_{l}\gt 0\\
+    0.01(e^{z_{l}} - 1) ,              & \text{if }z_{l} \leq 0
+\end{cases}$$
+```
+- The above function is an ELU (exponential linear unit).
+- In genetic learning's neural network, to constraint the output to be between 0 and 1 (because it represents the probability that the bird should jump), a sigmoid function is applied at the end (i.e. to $a_{L - 1}$):
+```math
+\frac{1}{1 + exp(-a^{L - 1})}
+```
+
+
+#### In the case of Q-Learning, how is a neural network "trained" exactly?
+When we say "train" a neural network $M$, we are essentially trying to adjust the parameters $W_{l}$ and $\vec{b_{l}}$ for each layer $l$ in such a way so as to minimize the average distance between our predicted output $M(\vec{x})$ and the expected output $\vec{y}$ (we called this the "loss").
+```math
+loss = \frac{1}{batchSize}\sum_{i=0}^{batchSize -1} \frac{1}{2}(M(\vec{x_i}) - \vec{y_i})^{2} $$
+```
+
+We already know how much we have to adjust for the last layer $a_{L - 1} = M(\vec{x})$ by calculating the derivative of the loss w.r.t $M(\vec{x_i})$:
+```math
+\delta a_{L - 1} = \frac{1}{batchSize} \sum_{i=0}^{batchSize -1} (M(\vec{x_i}) - \vec{y_i})
+```
+Since $a_{L - 1} = f(z_{L - 1})$, we would have to adjust $z_{L - 1}$ by $\delta z_{L - 1} = f'(z_{L - 1}) \cdot \delta a_{L - 1}$ via the chain rule, where $\cdot$ is the pairwise multiplication operator.
+
+Since $z_{L - 1} = W_{L - 1} {a_{L - 2}} + b_{L - 1}$, we can calculate the following:
+- $\delta W_{L - 1} = \delta z_{L - 1} (a_{L -1}^{T})$
+- $\delta b_{L - 1} = \delta z_{L - 1}$
+- $\delta a_{L - 2} = W_{L - 1}^{T} \delta z_{L - 1}$
+
+What happens now? We can just recursively do the same thing for $\delta z_{L - 2}$ and all the layers before it, essentially backpropogating the error back to all the weights and obtaining $\delta W_{l}$ and $\delta b_{l}$ for every layer $l$ along the way.
+
+In a simple gradient descent manner, we can nudge parameters toward the local optimum by a small step / learning rate $\alpha$:
+- $W_{l} := W_{l} - \alpha \cdot \delta W_{l}$
+- $b_{l} := b_{l} - \alpha \cdot \delta b_{l}$
+
+However, I mentioned the "local optimum", but not global optimum, which is what we actually want. We want the globally minimum loss, not some arbritary loss that happens to be slightly lower than that of the surrounding parameter space.
+I mean, I don't think there is any algorithm as of the time writing this report that guarantees global optimum convergence. However, there are a few good ones that are more robust to the "loss" environment. What do I mean by the "loss" environment? If you can somehow visualize the neural network's parameter space and plot the loss function against it, we can start to see that the loss function is actually pretty jagged and littered with valleys and pits (which are essentially local optimums). We do not want to fall into any of those, though - that's why it's a good idea to figure out a method that can still "roll" up those pits when we happen to get stuck. One of such method is the [Adam algorithm](https://arxiv.org/pdf/1412.6980.pdf).
+
+<div style="text-align: center;">
+<img src="pictures/adam.png" alt="drawing" width="70%"/>
+</div>
+<br/>
+
+I know the algorithm above is super confusing, but what it is computing is essentially the running average of the gradient (first moment) and square gradient (second moment). It then updates all the parameters, both the weights and biases, with some kind of ratio of the so-called "bias-corrected" versions of those running averages. You can look more into the paper details on why this improves the convergence of gradient descent. The most important thing to note is that it works beautifully for this project and that is why I mentioned it.
+
+Some other techniques I found helpful in stablizing the loss and/or speed up convergence:
+- Standardizing the labels (which are our target reward values $G_t$) for every episode before adding them to our memory buffer:
+```math
+G_t = \frac{G_t - mean(G_{0:T})}{stdev(G_{0:T})}
+```
+- Learning rate decay: decrease our learning rate very gradually epoch by epoch. Without decay, it is hard to find the right loss that works for every epoch; the loss might diverges (for big learning rate) or get stuck on local optimum (for small learning rate). Having big learning rate in the beginning helps with searching for global optimum, or at least good local optimum, and avoids local "lumps" in the loss function; after that, it is good to settle down for a smaller loss to avoid overshooting the optimum.
+```math
+\alpha_{epoch} = \alpha_0 \cdot lrDecay^{epoch / lrStep}
+```
+
+## Questions
+Don't be hesistate to reach out to me if you find anything interesting you want to improve, you find it hard to understand, or you just want to provide another perspective on this project! 
+
+
+
+
+
 
 
 
