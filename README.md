@@ -227,6 +227,30 @@ G_t = \frac{G_t - mean(G_{0:T})}{stdev(G_{0:T})}
 \alpha_{epoch} = \alpha_0 \cdot lrDecay^{epoch / lrStep}
 ```
 
+## Training plots
+
+### Genetic algorithm
+<div style="text-align: center;">
+<img src="graphs/gen_vs_score.png" alt="drawing" width="40%" style="margin:0px 10px" title="Lanlan's Dinner"/>
+<img src="graphs/gen_vs_dist.png" alt="drawing" width="40%"
+style="margin:0px 10px"/>
+</div>
+
+At each generation, we measure the maximum score (left figure) and maximum frames survived (right figure) that any bird in that generation has achieved. Note that we plot the log rather than the actual values for making it easier to visualize both small and large values on the same plot.
+
+### Q-Learning algorithm
+<div style="text-align: center;">
+<img src="graphs/epoch_vs_score.png" alt="drawing" width="40%" style="margin:0px 5px" title="Lanlan's Dinner"/>
+<img src="graphs/epoch_vs_dist.png" alt="drawing" width="40%"
+style="margin:0px 5px"/>
+<img src="graphs/epoch_vs_loss.png" alt="drawing" width="40%"
+style="margin:0px 5px"/>
+</div>
+At each epoch (gameplay), we measure the score (top left figure) and distance (top right figure) that the bird manage to perform, as well as the average loss (bottom figure), during that epoch. Again, we plot the log the score and frame survived for better visualization.
+Notice how the performance of the model over time in the Q-Learning
+algorithm increases at a much more consistent rate than that of Genetic Algorithm, which appears to be almost random somehow. 
+
+
 ## Questions
 Don't be hesistate to reach out to me if you find anything interesting you want to improve, you find it hard to understand, or you just want to provide another perspective on this project! 
 
