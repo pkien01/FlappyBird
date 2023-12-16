@@ -16,6 +16,38 @@ This is the final project for CSCI 5611 - Animation & Planning in Games, where w
 My project is related to both options 3 and 4. At first, I chose to just implement a simple Flappy Bird game via option 3. Then, my ambition and curiosity got the best of me, prompting me to ask, "why could we not program an algorithm to win the game?"
 
 ## How?
+### How to setup and run?
+- Make sure Java and Java Compilter is installed on your computer by running
+```bash
+> java --version
+openjdk 11.0.16.1 2022-08-12 LTS
+OpenJDK Runtime Environment Microsoft-40648 (build 11.0.16.1+1-LTS)
+OpenJDK 64-Bit Server VM Microsoft-40648 (build 11.0.16.1+1-LTS, mixed mode)
+> javac --version
+javac 11.0.16.1
+```
+- For running the default game:
+```bash
+javac *.java && java -ea Main
+```
+- For running the Genetic algorithm: need to make sure it's already trained or you can download & unzip the already trained parameters [here](https://drive.google.com/file/d/1zXxq0DV9VNAf-Vh_aR-W2a0adQlKB29X/view?usp=sharing):
+```bash
+javac *.java && java -ea Main -g
+```
+- For running the Q-Learning algorithm: need to make sure it's already trained or you can download & unzip the already trained parameters [here](https://drive.google.com/file/d/13F-Cy8CSf1z6z2Yb-s5q27m7T34yJQdW/view?usp=sharing):
+```bash
+javac *.java && java -ea Main -g
+```
+To train the model, just add a `-t` at the end:
+```bash
+javac *.java && java -ea Main -g -t
+```
+OR
+```bash
+javac *.java && java -ea Main -q -t
+```
+
+Feel free to change the parameters file directories, hyperparameters, and/or settings directly in the code.
 ### Libraries utilized:
 We try to keep our tools minimalistic:
 - [Java Abstract Window Toolkit (AWT)](https://docs.oracle.com/javase/7/docs/api/java/awt/package-summary.html) provides basic functionality for creating graphical interfaces.
@@ -251,8 +283,24 @@ Notice how the performance of the model over time in the Q-Learning
 algorithm increases at a much more consistent rate than that of Genetic Algorithm, which appears to be almost random somehow. 
 
 
+## Future directions
+
+Unfortunately, I cannot add coins, as I promised, at the moment due to final exams I have to prepare for. However, I will definitely explore this feature first when I decide to continue working on the project in the future. It will be very interesting to see how the model balance risk and reward (i.e. would it choose to still fly up to a coin even though it might lead to high chance of dying?)
+
+<div style="text-align: center;">
+<img src="pictures/flappy_coins.gif" alt="drawing" width="50%"/>
+</div>
+<br/>
+
+Other directions would include implementing another algorithm to win the game. This includes:
+- Actor-critic (I've actually implemented this but there is still some training issues I have yet to fix)
+- Some kind of model-based RL algorithm, such as world models, to minimize the number of training episodes.
+- An RL algorithm that could learn based on some initial example gameplays?
+- Heuristic/rule-based methods that do not require ML
+
+
 ## Questions
-Don't be hesistate to reach out to me if you find anything interesting you want to improve, you find it hard to understand, or you just want to provide another perspective on this project! 
+Don't be hesistate to reach out to me if you find anything interesting, you need additional explainations/clarifications, or you just want to provide another perspective on this project! 
 
 
 
