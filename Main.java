@@ -103,11 +103,11 @@ public class Main {
             int verboseFreq = 0, iterations = 0;
             if (args[0].equals("-g") || args[0].equals("--genetic")) {
                 gameMode = Game.Mode.GENETIC;
-                verboseFreq = 10;
+                verboseFreq = 1;
                 iterations = 3000000;
             } else if (args[0].equals("-q") || args[0].equals("--qlearning")) {
                 gameMode = Game.Mode.QLEARNING;
-                verboseFreq = 10;
+                verboseFreq = 1;
                 iterations = 1000000;
             } else {
                 throw new RuntimeException("Invalid mode: " + args[0]);
