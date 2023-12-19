@@ -194,7 +194,7 @@ We now dive into the fun part: math!
 z_{L - 1} = W_{L - 1}(W_{L-2}(W_{L-3}\ldots(W_{0}\vec{x} + \vec{b}_0) \ldots + \vec{b}_{L-3}) + \vec{b}_{L-2}) + \vec{b}_{L-1} 
 ```
 ```math
- = (W_{L-1}W_{L-2}W_{L-3}\ldots W_{0})\vec{x} +(W_{L-1}W_{L-2}W_{L-3}\ldots W_{1})\vec{b}_1 + \ldots 
+ = (W_{L-1}W_{L-2}W_{L-3}\ldots W_{0})\vec{x} +(W_{L-1}W_{L-2}W_{L-3}\ldots W_{1})\vec{b}_0 + \ldots 
 ```
 ```math
  = [some\ constant\ matrix]\vec{x} + [some\ constant\ vector]
